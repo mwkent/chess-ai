@@ -16,6 +16,7 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
     	print(move)
     	self.assertEqual(move, chess.Move.from_uci('d2f2'))
 
+    # Need to make it so mate in 1 is valued more than mate in 2, etc.
     def test_mate_in_1(self):
         board = chess.Board("1n3k2/5ppr/8/pp1p1b2/3P3P/4rP2/PP5q/5K2 b - - 1 34")
         move = minimax_alpha_beta.pick_move(board, 3)
@@ -43,11 +44,24 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
         print(move)
         self.assertNotEqual(move, None)
 
+    # This one is complicated.
     def test_free_knight(self):
         board = chess.Board("r1bqkb1r/ppp1pppp/5P2/8/3p4/2N5/PPP1PPPP/R1BQKB1R b KQkq - 0 6")
         move = minimax_alpha_beta.pick_move(board, 2)
-        print(move)
+        print("Initial pos =", move)
+        board = chess.Board("r1bqkb1r/ppp2ppp/5p2/8/3p4/2N5/PPP1PPPP/R1BQKB1R w KQkq - 0 7")
+        move2 = minimax_alpha_beta.pick_move(board, 1)
+        print("After taking pawn =", move2)
+        board = chess.Board("r1bqkb1r/ppp1pppp/5P2/8/8/2p5/PPP1PPPP/R1BQKB1R w KQkq - 0 7")
+        move2 = minimax_alpha_beta.pick_move(board, 1)
+        print("After taking knight =", move2)
         self.assertEqual(move, chess.Move.from_uci('d4c3'))
+
+    def test_take_or_trap_bishop(self):
+        board = chess.Board("r5r1/pp1kBpp1/1qppb2p/4p3/5P2/PPQP3P/2P2PB1/R4RK1 b - - 0 18")
+        move = minimax_alpha_beta.pick_move(board, 2)
+        print("depth = 2:", move)
+        self.assertIn(move, [chess.Move.from_uci('d7e7'), chess.Move.from_uci('e5f4')])
 
 
 if __name__ == '__main__':

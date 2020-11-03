@@ -33,6 +33,7 @@ ATTACKING_ADJACENT_EVAL = 100
 
 PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 320, chess.ROOK: 500, chess.QUEEN: 900}
 PIECE_TYPES = [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
+PIECE_TYPES_STRONG_TO_WEAK = [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.PAWN]
 ALL_PIECE_TYPES = PIECE_TYPES + [chess.KING]
 
 CENTER = [chess.D4, chess.D5, chess.E4, chess.E5]
@@ -40,16 +41,15 @@ SECOND_RING = [chess.C3, chess.C4, chess.C5, chess.C6, chess.D3, chess.D6, chess
 RIM = [chess.A1, chess.A2, chess.A3, chess.A4, chess.A5, chess.A6, chess.A7, chess.A8, chess.B1, chess.B8] #need to finish
 
 # Are there any pieces free to take for color
-def count_free_to_take(board, turn, color):
-	evaluation = 0
-	modifier = FREE_TO_TAKE_MODIFIER if turn == color else FREE_TO_TAKE_NOT_TURN_MODIFIER
-	for piece_type in PIECE_TYPES:
+def count_free_to_take(board, color):
+	modifier = FREE_TO_TAKE_MODIFIER if board.turn == color else FREE_TO_TAKE_NOT_TURN_MODIFIER
+	for piece_type in PIECE_TYPES_STRONG_TO_WEAK:
 		pieces = board.pieces(piece_type, not color)
 		for piece in pieces:
 			# attacked by color and not defended by not color
 			if board.is_attacked_by(color, piece) and not board.is_attacked_by(not color, piece):
-				evaluation += PIECE_TYPES_TO_VALUES[piece_type] * modifier
-	return evaluation
+				return PIECE_TYPES_TO_VALUES[piece_type] * modifier
+	return 0
 
 # Are you attacking a defended piece with something of lesser value (i.e. threatening a trade in your favor)
 def attacking_stronger_pieces(board, color):
@@ -256,7 +256,11 @@ def get_defended_value(board, turn):
 				evaluation += DEFENDED_EVAL
 	return evaluation
 
+def get_evaluation_for_both_sides(get_evaluation, board, turn):
+	return get_evaluation(board, turn) - get_evaluation(board, not turn)
 
+# Returns centipawn evaluation
+# A positive number is good for turn while negative is bad
 def evaluate_position(board, turn):
 	if board.is_checkmate():
 		if board.turn == turn:
@@ -267,19 +271,17 @@ def evaluate_position(board, turn):
 	if board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw():
 		return DRAW_EVAL
 	evaluation = 0
-	evaluation += get_total_piece_value(board, turn) - get_total_piece_value(board, not turn)
-	evaluation += get_pawn_value(board, turn) - get_pawn_value(board, not turn)
-	evaluation += get_knight_value(board, turn) - get_knight_value(board, not turn)
-	evaluation += get_bishop_value(board, turn) - get_bishop_value(board, not turn)
-	evaluation += get_rook_value(board, turn) - get_rook_value(board, not turn)
-	evaluation += get_queen_value(board, turn) - get_queen_value(board, not turn)
-	evaluation += get_king_safety(board, turn) - get_king_safety(board, not turn)
-	evaluation += check_for_pins(board, turn) - check_for_pins(board, not turn)
-	evaluation += get_defended_value(board, turn) - get_defended_value(board, not turn)
-	# board.turn = who's turn is it currently in the minimax evaluation
-	# turn = the turn of the player whose best move we are trying to find
-	evaluation += count_free_to_take(board, board.turn, turn) - count_free_to_take(board, board.turn, not turn)
-	evaluation += attacking_stronger_pieces(board, turn) - attacking_stronger_pieces(board, not turn)
+	evaluation += get_evaluation_for_both_sides(get_total_piece_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_pawn_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_knight_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_bishop_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_rook_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_queen_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_king_safety, board, turn)
+	evaluation += get_evaluation_for_both_sides(check_for_pins, board, turn)
+	evaluation += get_evaluation_for_both_sides(get_defended_value, board, turn)
+	evaluation += get_evaluation_for_both_sides(count_free_to_take, board, turn)
+	evaluation += get_evaluation_for_both_sides(attacking_stronger_pieces, board, turn)
 	#print(board)
 	#print("evaluation = ", evaluation)
 	return evaluation

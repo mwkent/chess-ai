@@ -35,17 +35,17 @@ class TestPositionEvaluator(unittest.TestCase):
 		self.assertEqual(position_evaluator.get_num_isolated_pawns(chess.SquareSet([chess.A2, chess.C5, chess.D4, chess.D6, chess.F2, chess.H2])), 3)
 
 	def test_pawn_free_to_take(self):
-		board = chess.Board("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")
-		self.assertEqual(position_evaluator.count_free_to_take(board, chess.BLACK, chess.BLACK), position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN] * position_evaluator.FREE_TO_TAKE_MODIFIER)
+		board = chess.Board("r1bqk2r/ppppbppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 7 5")
+		self.assertEqual(position_evaluator.count_free_to_take(board, chess.BLACK), position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN] * position_evaluator.FREE_TO_TAKE_MODIFIER)
 
 	# Black's turn, white's pawn is free to take
 	def test_pawn_free_to_take_not_turn(self):
 		board = chess.Board("r1bqkb1r/pppp1ppp/2n2n2/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4")
-		self.assertEqual(position_evaluator.count_free_to_take(board, chess.WHITE, chess.BLACK), position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN] * position_evaluator.FREE_TO_TAKE_NOT_TURN_MODIFIER)
+		self.assertEqual(position_evaluator.count_free_to_take(board, chess.BLACK), position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN] * position_evaluator.FREE_TO_TAKE_NOT_TURN_MODIFIER)
 
 	def test_bishop_free_to_take(self):
 		board = chess.Board("rnbqk1nr/pppp1ppp/4p3/7Q/3P4/b1P1P3/PP3PPP/RNB1KBNR w KQkq - 3 5")
-		self.assertEqual(position_evaluator.count_free_to_take(board, chess.WHITE, chess.WHITE), position_evaluator.PIECE_TYPES_TO_VALUES[chess.BISHOP] * position_evaluator.FREE_TO_TAKE_MODIFIER)
+		self.assertEqual(position_evaluator.count_free_to_take(board, chess.WHITE), position_evaluator.PIECE_TYPES_TO_VALUES[chess.BISHOP] * position_evaluator.FREE_TO_TAKE_MODIFIER)
 
 	def test_one_passed_pawn(self):
 		board = chess.Board("4k3/p6p/8/8/8/8/4P3/2K5 w - - 0 1")
@@ -103,6 +103,7 @@ class TestPositionEvaluator(unittest.TestCase):
 		knight_squares = chess.SquareSet([chess.C5, chess.D7])
 		self.assertEqual(position_evaluator.get_knight_rank_eval(knight_squares, chess.BLACK), knight_rank_eval)
 
+	# Need to figure this one out. It is complicated.
 	@unittest.skip("delete")
 	def test_free_knight(self):
 		board = chess.Board("r1bqkb1r/ppp1pppp/5P2/8/3p4/2N5/PPP1PPPP/R1BQKB1R b KQkq - 0 6")
