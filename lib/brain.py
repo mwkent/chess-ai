@@ -20,6 +20,8 @@ with_qs = True
 
 to_flag = None
 
+ponder_move = None
+
 def set_to_flag(to_flag):
     to_flag.set()
     l("time is up");
@@ -43,6 +45,7 @@ def calc_move_delete(board, max_think_time, max_depth, is_ponder):
 
     start_ts = time.time()
     for d in range(1, max_depth + 1):
+        print()
         print("Reached depth of", d)
         cur_result = minimax_alpha_beta.pick_full_move(board, d)
 
@@ -67,6 +70,41 @@ def calc_move_delete(board, max_think_time, max_depth, is_ponder):
         t.cancel()
 
     l('selected move: %s' % result)
+
+    elapsed_time = time.time() - start_ts
+
+    return result
+
+# No threading involved
+# Returns [move eval, move, depth reached, time taken]
+# Todo: Implement ponder
+def calc_move_no_thread(board, max_think_time, max_depth, is_ponder):
+    global ponder_move
+    if is_ponder:
+        ponder_move = None
+    print("max_think_time =", max_think_time)
+    result = None
+    start_ts = time.time()
+
+    # If there's only one move, no need to calculate
+    moves = list(board.legal_moves) 
+    if len(moves) == 1:
+        return [None, moves[0], 0, 0]
+
+    for d in range(1, max_depth + 1):
+        print()
+        cur_result = minimax_alpha_beta.pick_full_move(board, d)
+
+        elapsed_time = time.time() - start_ts
+
+        result = [cur_result[0], cur_result[1], d, elapsed_time]
+
+        # An estimate on how much longer it takes to calculate 1 depth deeper than the last
+        additional_depth_factor = 10.0
+        if (result[0] == position_evaluator.MAX_EVAL) or (result[0] == position_evaluator.MIN_EVAL) or \
+            (max_think_time and elapsed_time > max_think_time / additional_depth_factor):
+            ponder_move = result
+            break
 
     elapsed_time = time.time() - start_ts
 
@@ -126,7 +164,11 @@ def cm_thread_check():
         thread.join(0.05)
 
         return thread.is_alive()
-
+    
+    global thread_result
+    # Keep going if no result yet
+    if not thread_result:
+        return True
     return False
 
 # calc move thread stop

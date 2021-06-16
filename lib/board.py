@@ -130,3 +130,6 @@ if __name__ == "__main__":
     print(b.get_zh(), chess.polyglot.zobrist_hash(b), b.get_zh() == chess.polyglot.zobrist_hash(b))
     b.push(chess.Move.from_uci('e5d4'))
     print(b.get_zh(), chess.polyglot.zobrist_hash(b), b.get_zh() == chess.polyglot.zobrist_hash(b))
+    b.push(chess.Move.from_uci('e5d4'))
+    b.push(chess.Move.from_uci('e5d4'))
+    b.push(chess.Move.from_uci('e5d4'))
