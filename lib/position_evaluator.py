@@ -113,6 +113,7 @@ CONNECTED_ROOKS_EVAL = 10
 ROOK_ON_OPEN_FILE_BONUS = [10, 0]
 ROOK_ON_HALF_OPEN_FILE_BONUS = [5, 0]
 ROOK_TOO_AGGRESSIVE_PENALTY = -10
+ROOK_ALIGNED_PENALTY = -15
 
 ROOK_SQUARES_TO_ATTACKING_BONUS = dict.fromkeys(CENTER, [4, 0])
 ROOK_SQUARES_TO_ATTACKING_BONUS.update(dict.fromkeys(SECOND_RING, [2, 0]))
@@ -605,6 +606,19 @@ def get_rook_too_aggressive_penalty(board, rook):
 		return ROOK_TOO_AGGRESSIVE_PENALTY
 	return 0
 
+# Is the rook aligned with the opponent's bishop and is there one piece in between
+def get_rook_aligned_with_bishop_penalty(board, rook):
+	rook_color = board.color_at(rook)
+	for diagonal_square in chess_util.get_diagonals(rook):
+		if board.piece_type_at(diagonal_square) == chess.BISHOP and board.color_at(diagonal_square) != rook_color:
+			num_pieces_in_between = 0
+			for in_between_square in chess.SquareSet.between(rook, diagonal_square):
+				if board.piece_at(in_between_square):
+					num_pieces_in_between += 1
+			if num_pieces_in_between == 1:
+				return ROOK_ALIGNED_PENALTY
+	return 0
+
 # What makes a rook stronger or weaker
 def get_rook_value(board, turn, free_to_take, free_to_trade, free_to_trade_value):
 	evaluation = 0
@@ -625,6 +639,7 @@ def get_rook_value(board, turn, free_to_take, free_to_trade, free_to_trade_value
 			evaluation += get_piece_on_bishop_color_penalty(board, rook)
 			evaluation += get_rook_too_aggressive_penalty(board, rook)
 			evaluation += get_pressure_penalty(board, rook)
+			evaluation += get_rook_aligned_with_bishop_penalty(board, rook)
 	evaluation += get_connected_rooks_value(board, rooks)
 	return evaluation
 
@@ -650,7 +665,6 @@ def get_queen_aligned_value(board, color):
 				if num_pieces_in_between == 1:
 					value -= QUEEN_ALIGNED_PENALTY
 	return value
-
 
 # What makes a queen stronger or weaker
 def get_queen_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):

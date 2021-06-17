@@ -42,6 +42,14 @@ class TestPositionEvaluator(unittest.TestCase):
 		rook = chess.H4
 		self.assertEqual(position_evaluator.get_rook_too_aggressive_penalty(board, rook), 0)
 
+	def test_get_rook_aligned_with_bishop_penalty(self):
+		board = chess.Board("5rk1/p1pqpp1p/2n2np1/3p1b2/1r6/2NPP1PP/P1PB1PBR/R2Q1K2 w - - 1 15")
+		rook = chess.B4
+		self.assertEqual(position_evaluator.get_rook_aligned_with_bishop_penalty(board, rook), position_evaluator.ROOK_ALIGNED_PENALTY)
+
+		rook = chess.H2
+		self.assertEqual(position_evaluator.get_rook_aligned_with_bishop_penalty(board, rook), 0)
+
 	def test_is_isolated_pawn(self):
 		pawns = chess.SquareSet([chess.A2, chess.B2, chess.D3, chess.H4])
 		pawn = chess.A2
