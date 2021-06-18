@@ -32,7 +32,6 @@ import endgame
 # Todo: It is more important to defend pieces that are attacked, not much value in 2 defenders 0 attackers
 # Todo: Search promotion; only pieces or a king can stop a pawn
 # Todo: Forks - How to handle multiple pieces attacked
-# Todo: Pressure pieces - Tie down pieces/defenders
 # Todo: Understand pawn breaks
 
 MAX_EVAL = 1_000_000
@@ -55,7 +54,7 @@ PRESSURE_PENALTY = -10
 FREE_TO_TAKE_MODIFIER = .9
 FREE_TO_TAKE_NOT_TURN_MODIFIER = .1
 FREE_TO_TAKE_MODIFIER_PENALTY = .1
-FREE_TO_TRADE_MODIFIER = .9
+FREE_TO_TRADE_MODIFIER = 1.1
 DEFENDED_EVAL = 7
 DOUBLE_DEFENDED_BONUS = 10
 DEVELOPMENT_BONUS = [10, 0]
@@ -620,7 +619,7 @@ def get_rook_aligned_with_bishop_penalty(board, rook):
 	return 0
 
 # What makes a rook stronger or weaker
-def get_rook_value(board, turn, free_to_take, free_to_trade, free_to_trade_value):
+def get_rook_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
 	evaluation = 0
 	rooks = board.pieces(chess.ROOK, turn)
 	for rook in rooks:
@@ -628,6 +627,8 @@ def get_rook_value(board, turn, free_to_take, free_to_trade, free_to_trade_value
 			evaluation += PIECE_TYPES_TO_VALUES[chess.ROOK] * FREE_TO_TAKE_MODIFIER_PENALTY
 		elif rook == free_to_trade:
 			evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
+		elif chess_util.is_rook_pinned(board, rook, turn) and board.piece_type_at(chess_util.get_pinner(board, rook)) == chess.BISHOP:
+			evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP] * FREE_TO_TRADE_MODIFIER
 		else:
 			evaluation += PIECE_TYPES_TO_VALUES[chess.ROOK]
 			if not chess_util.is_rook_pinned(board, rook, turn):
@@ -673,14 +674,16 @@ def get_queen_value(board, turn, free_to_take=None, free_to_trade=None, free_to_
 	for queen in queens:
 		if queen == free_to_take:
 			evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN] * FREE_TO_TAKE_MODIFIER_PENALTY
+		elif queen == free_to_trade:
+			evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
+		elif board.is_pinned(turn, queen) and board.piece_type_at(chess_util.get_pinner(board, queen)) in [chess.BISHOP, chess.ROOK]:
+			pinner_piece_type = board.piece_type_at(chess_util.get_pinner(board, queen))
+			evaluation += PIECE_TYPES_TO_VALUES[pinner_piece_type] * FREE_TO_TRADE_MODIFIER
 		else:
-			if queen == free_to_trade:
-				evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
-			else:
-				evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN]
-				if not board.is_pinned(turn, queen):
-					evaluation += len(board.attacks(queen)) * QUEEN_ATTACK_VALUE
-				evaluation += get_defended_bonus(board, queen)
+			evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN]
+			if not board.is_pinned(turn, queen):
+				evaluation += len(board.attacks(queen)) * QUEEN_ATTACK_VALUE
+			evaluation += get_defended_bonus(board, queen)
 	evaluation += get_queen_aligned_value(board, turn)
 	return evaluation
 

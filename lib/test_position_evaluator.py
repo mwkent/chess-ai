@@ -50,6 +50,11 @@ class TestPositionEvaluator(unittest.TestCase):
 		rook = chess.H2
 		self.assertEqual(position_evaluator.get_rook_aligned_with_bishop_penalty(board, rook), 0)
 
+	def test_rook_pinned_by_bihsop(self):
+		board = chess.Board("5k2/8/8/8/5b2/8/3R4/2K5 w - - 0 1")
+		turn = chess.WHITE
+		self.assertTrue(position_evaluator.get_rook_value(board, turn) < 400)
+
 	def test_is_isolated_pawn(self):
 		pawns = chess.SquareSet([chess.A2, chess.B2, chess.D3, chess.H4])
 		pawn = chess.A2
@@ -211,6 +216,18 @@ class TestPositionEvaluator(unittest.TestCase):
 		self.assertEqual(position_evaluator.get_queen_aligned_value(board, chess.BLACK), black_aligned_value)
 		white_aligned_value = 0
 		self.assertEqual(position_evaluator.get_queen_aligned_value(board, chess.WHITE), white_aligned_value)
+
+	# Queen pinned to king by rook or bishop
+	def test_queen_pinned(self):
+		# Queen pinned by bishop
+		board = chess.Board("5k2/8/8/6p1/5b2/8/3Q4/2K5 w - - 0 1")
+		turn = chess.WHITE
+		self.assertTrue(position_evaluator.get_queen_value(board, turn) < 400)
+
+		# Queen pinned by rook
+		board = chess.Board("5k2/3p4/2r5/8/8/8/2Q5/2K5 w - - 0 1")
+		turn = chess.WHITE
+		self.assertTrue(position_evaluator.get_queen_value(board, turn) < 600)
 
 	def test_is_piece_on_bishop_color(self):
 		board = chess.Board("kb6/2b5/8/8/8/1BB5/P7/K7 w - - 0 1")

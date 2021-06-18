@@ -97,6 +97,11 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertIn(move, [chess.Move.from_uci("c4b4"), chess.Move.from_uci("c4c5")])
 
+	def test_pin_queen_to_king(self):
+		board = chess.Board("1r4r1/1pp2p1p/2nbkp2/pB1q4/P2Pp3/1P2P1P1/3NQP1P/1RR3K1 w - - 1 19")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("b5c4"))		
+
 
 if __name__ == '__main__':
 	unittest.main()
