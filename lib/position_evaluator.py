@@ -11,7 +11,6 @@ import endgame
 # Todo: Pawn storm
 # Todo: Backward pawns
 # Todo: Other pins: pin to queen, pin to rook
-# Todo: Pin higher valued pieces means you are winning the piece usually
 # Todo: Pressure/attack pinned pieces
 # Todo: Skewers
 # Todo: Discoveries

@@ -1,18 +1,13 @@
 # Handles UCI (Universal Chess Interface)
 # See UCI protocol: http://wbec-ridderkerk.nl/html/UCIProtocol.html
 
-from board import Board
-import chess
-import chess.polyglot
-import math
+from chess import Board
 from multiprocessing import Queue
-from select import select
 import sys
 import threading
-from threading import Thread
 import time
 import traceback
-from brain import calc_move, cm_thread_start, cm_thread_check, cm_thread_stop, calc_move_no_thread
+from brain import calculate
 import think_time_calculator
 from log import set_l, l
 
@@ -44,19 +39,6 @@ class stdin_reader(threading.Thread):
 		except:
 			return None
 
-def perft(board, depth):
-	if depth == 1:
-		return board.move_count()
-
-	total = 0
-
-	for m in board.get_move_list():
-		board.push(m)
-		total += perft(board, depth - 1)
-		board.pop()
-
-	return total
-
 def send(str_):
 	print(str_)
 	l('OUT: %s' % str_)
@@ -75,16 +57,16 @@ def wait_init_thread(t):
 	return None
 
 def uci():
-	send('id name abc')
-	send('id author matt')
+	send('id name FENder_Bender')
+	send('id author Matt')
 	send('uciok')
 
 def is_ready():
 	send('readyok')
 
 def uci_new_game():
-	board = Board()
-	cm_thread_stop()
+	# Nothing is required, at this point, to start a new UCI game
+	pass
 
 # Is setting the position by playing the entire game slow?
 def position(parts, board):
@@ -116,35 +98,7 @@ def position(parts, board):
 	elapsed_time = time.time() - start_time
 	print("time to set position =", elapsed_time)
 
-def delete_old_think_time_calculator():
-	ms = wtime
-	time_inc = winc
-	if not board.turn:
-		ms = btime
-		time_inc = binc
-
-	ms /= 1000.0
-	time_inc /= 1000.0
-
-	if movestogo == None:
-		movestogo = 40 - board.fullmove_number
-		while movestogo < 0:
-			movestogo += 40
-
-	current_duration = (ms + movestogo * time_inc) / (board.fullmove_number + 7);
-
-	limit_duration = ms / 15.0
-	if current_duration > limit_duration:
-		current_duration = limit_duration
-
-	if current_duration == 0:
-		current_duration = 0.001
-
-	l('mtg %d, ms %f, ti %f' % (movestogo, ms, time_inc))
-	###
-
-
-def go(t, parts, board, sr):
+def go(parts, board):
 	movetime = None
 	depth = None
 	wtime = btime = None
@@ -208,7 +162,7 @@ def go(t, parts, board, sr):
 	if depth == None:
 		depth = 10
 
-	result = calc_move_no_thread(board, current_duration, depth, is_ponder=ponder)
+	result = calculate(board, current_duration, depth, is_ponder=ponder)
 
 	if result and result[1]:
 		send('bestmove %s' % result[1].uci())
@@ -219,75 +173,22 @@ def go(t, parts, board, sr):
 		print("ERROR getting move")
 		send('bestmove a1a1')
 
-# Delete
-# Calcing with threads
-def old_calc_move():
-	cm_thread_start(board, current_duration, depth, False)
-
-	line = None
-	while cm_thread_check():
-		line = sr.get(0.01)
-
-		if line:
-			line = line.rstrip('\n')
-
-			if line == 'stop' or line == 'quit':
-				break
-
-	result = cm_thread_stop()
-
-	if line == 'quit':
-		return
-
-
-
 def fen(board):
 	send('%s' % board.fen())
 
-def eval_command(board, parts, t):
-	moves = pc_to_list(board, [])
-
-	depth = None
-	if parts[0] == 'deval':
-		t = wait_init_thread(t)
-		depth = int(parts[1])
-	elif len(parts) == 2:
-		check_move = chess.Move.from_uci(parts[1])
-
-	send('move\teval\tsort score')
-	for m in moves:
-		if not m.move == check_move:
-			continue
-
-		board.push(m.move)
-
-		if depth:
-			rc = calc_move(board, None, depth)
-			v = rc[0]
-			send('%s\t%d\t%d (%s)' % (m.move, v, m.score, rc[1]))
-
-		else:
-			v = evaluate(board)
-			if board.turn == chess.BLACK:
-				v = -v
-			send('%s\t%d\t%d' % (m.move, v, m.score))
-
-		board.pop()
-
-
 def main():
-	t = threading.Thread()
-	t.start()
+	thread = threading.Thread()
+	thread.start()
 
 	try:
-		sr = stdin_reader()
-		sr.daemon = True
-		sr.start()
+		reader = stdin_reader()
+		reader.daemon = True
+		reader.start()
 
 		board = Board()
 
 		while True:
-			line = sr.get()
+			line = reader.get()
 			if line == None:
 				break
 
@@ -308,15 +209,13 @@ def main():
 
 			elif parts[0] == 'ucinewgame':
 				uci_new_game()
-
-			elif parts[0] == 'perft': # Not in UCI protocol
-				perft()
+				board = Board()
 
 			elif parts[0] == 'position':
 				position(parts, board)
 
 			elif parts[0] == 'go':
-				go(t, parts, board, sr)
+				go(parts, board)
 
 			elif parts[0] == 'quit':
 				break
@@ -324,84 +223,19 @@ def main():
 			elif parts[0] == 'fen':
 				fen(board)
 
-			elif parts[0] == 'eval' or parts[0] == 'deval':
-				eval_command(board, parts, t)
-
-			elif parts[0] == 'moves':
-				send('%s' % [m.uci() for m in board.get_move_list()])
-
-			elif parts[0] == 'smoves':
-				moves = board.get_move_list()
-				send('%s' % [m.move.uci() for m in moves])
-
-			elif parts[0] == 'trymovedepth':
-				t = wait_init_thread(t)
-				board.push(chess.Move.from_uci(parts[1]))
-				send('%s' % calc_move(board, None, int(parts[2])))
-				board.pop()
-
 			else:
-				l('unknown: %s' % parts[0])
-				send('Unknown command')
+				send("Unknown command =", parts[0])
 
 				sys.stdout.flush()
 
-		cm_thread_stop()
-
-	except KeyboardInterrupt as ki:
+	except KeyboardInterrupt:
 		l('ctrl+c pressed')
-		cm_thread_stop()
 
 	except Exception as ex:
 		l(str(ex))
 		l(traceback.format_exc())
 
-def benchmark_test():
-	board = Board()
-	calc_move(board, 60.0, 999999)
-
-def epd_test(str_):
-	parts = str_.split(';')
-	board = chess.Board(parts[0])
-
-	print(parts[0])
-
-	for test in parts:
-		test = test.strip()
-
-		if test[0] != 'D':
-			continue
-
-		pparts = test.split(' ')
-
-		depth = int(pparts[0][1:])
-
-		count = int(pparts[1])
-
-		verify = perft(board, depth)
-
-		print('\t', depth, verify, count,)
-		if verify == count:
-			print('ok')
-		else:
-			print('FAIL!')
-			sys.exit(1)
-
 if len(sys.argv) == 2:
 	set_l(sys.argv[1])
 
-if benchmark:
-	import cProfile
-	cProfile.run('benchmark_test()', 'restats')
-elif epd:
-	while True:
-		line = sys.stdin.readline()
-		if not line:
-			break
-
-		if len(line) == 0 or line[0] == '#':
-			continue
-
-		epd_test(line)
-else:
-	main()
+main()
