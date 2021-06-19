@@ -7,7 +7,7 @@ import sys
 import threading
 import time
 import traceback
-from brain import calculate
+import move_calculator
 import think_time_calculator
 from log import set_l, l
 
@@ -162,7 +162,7 @@ def go(parts, board):
 	if depth == None:
 		depth = 10
 
-	result = calculate(board, current_duration, depth, is_ponder=ponder)
+	result = move_calculator.calculate(board, current_duration, depth, is_ponder=ponder)
 
 	if result and result[1]:
 		send('bestmove %s' % result[1].uci())
