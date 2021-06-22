@@ -136,6 +136,7 @@ def evaluate_position(board, turn):
 		#print("push_to_corner =", push_to_corner(weak_king))
 		#print("push_close =", push_close(weak_king, strong_king))
 		evaluation += push_to_corner(weak_king)
+		# Todo: Should this be in?
 		#evaluation += push_close(weak_king, strong_king)
 		evaluation += push_close_non_pawns(board, weak_king)
 		evaluation += get_material_value(board, strong_color)

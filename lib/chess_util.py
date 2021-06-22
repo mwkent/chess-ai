@@ -237,9 +237,7 @@ def get_second_attackers_and_defenders(board, square, first_attackers, first_def
 	second_attackers = get_battery_attackers(board, square, not defend_color, first_attackers)
 	second_defenders = get_battery_attackers(board, square, defend_color, first_defenders)
 	
-	attackers = first_attackers + second_attackers
-	defenders = first_defenders + second_defenders
-	pinned_attackers, pinned_defenders = get_pinned_attackers_and_defenders(board, attackers, defenders, square)
+	pinned_attackers, pinned_defenders = get_pinned_attackers_and_defenders(board, square)
 	second_attackers += pinned_attackers
 	second_defenders += pinned_defenders
 	
@@ -265,7 +263,7 @@ def get_pinner(board, pinned_piece):
 	return None
 
 # Todo: Not considering battery attackers that are pinned?
-def get_pinned_attackers_and_defenders(board, attackers, defenders, piece):
+def get_pinned_attackers_and_defenders(board, piece):
 	defend_color = board.color_at(piece)
 	pinned_attackers = []
 	all_attackers = board.attackers(not defend_color, piece)
@@ -308,7 +306,6 @@ def are_more_attackers_than_defenders(board, piece, attack_color=None):
 	return num_attackers > num_defenders
 
 def get_attackers_and_defenders(board, piece):
-	color = board.color_at(piece)
 	first_attackers, first_defenders = get_first_attackers_and_defenders(board, piece)
 	second_attackers, second_defenders = get_second_attackers_and_defenders(board, piece, first_attackers, first_defenders)
 	return first_attackers, second_attackers, first_defenders, second_defenders

@@ -10,7 +10,7 @@ ponder_move = None
 # Finds the best move to play according to the chess engine
 # Returns [move eval, move, depth reached, time taken]
 # Todo: Implement ponder
-def calculate(board, max_think_time, max_depth, is_ponder):
+def calculate(board, max_think_time, max_depth=20, is_ponder=False):
     global ponder_move
     if is_ponder:
         ponder_move = None

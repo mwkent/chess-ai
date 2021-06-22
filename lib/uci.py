@@ -12,8 +12,6 @@ import think_time_calculator
 from log import set_l, l
 
 ponder = False
-benchmark = False
-epd = False
 
 class stdin_reader(threading.Thread):
 	q = Queue()
@@ -43,18 +41,6 @@ def send(str_):
 	print(str_)
 	l('OUT: %s' % str_)
 	sys.stdout.flush()
-
-def wait_init_thread(t):
-	if not t:
-		return
-
-	send('info string waiting for init thread')
-
-	t.join()
-
-	send('info string initialized')
-
-	return None
 
 def uci():
 	send('id name FENder_Bender')
@@ -177,9 +163,6 @@ def fen(board):
 	send('%s' % board.fen())
 
 def main():
-	thread = threading.Thread()
-	thread.start()
-
 	try:
 		reader = stdin_reader()
 		reader.daemon = True
@@ -232,6 +215,7 @@ def main():
 		l('ctrl+c pressed')
 
 	except Exception as ex:
+		send(ex)
 		l(str(ex))
 		l(traceback.format_exc())
 

@@ -114,8 +114,6 @@ class TestChessUtil(unittest.TestCase):
 	def test_get_min_valued_piece(self):
 		board = chess.Board()
 		rook = chess.A1
-		knight = chess.B1
-		queen = chess.D1
 		king = chess.E1
 		pawn = chess.A2
 		pieces = [pawn, rook]
@@ -128,10 +126,6 @@ class TestChessUtil(unittest.TestCase):
 		board = chess.Board("4k3/8/3p4/2p3p1/8/5N2/8/4K3 w - - 0 1")
 		knight = chess.F3
 		self.assertEqual(chess_util.get_forward_knight_moves(board, knight), [chess.D4, chess.H4, chess.E5, chess.G5])
-
-	def test_is_or_can_claim_draw_stalemate(self):
-		stalemate = chess.Board("8/8/8/8/8/1q6/2k5/K7 w - - 0 1")
-		self.assertTrue(chess_util.is_or_can_claim_draw(stalemate))
 
 	def test_is_or_can_claim_draw_stalemate(self):
 		stalemate = chess.Board("8/8/8/8/8/1q6/2k5/K7 w - - 0 1")
@@ -242,13 +236,10 @@ class TestChessUtil(unittest.TestCase):
 
 	def test_get_pinned_attackers_and_defenders(self):
 		board = chess.Board("rn2kb1r/pp2pppp/2p1b3/q7/3P4/2N5/PPP2PPP/R1BQK1NR b KQkq - 2 8")
-		attackers = [chess.E6, chess.A5]
-		# Don't include pinned pieces here
-		defenders = [chess.A1]
 		piece = chess.A2
 		pinned_attackers = []
 		pinned_defenders = [chess.C3]
-		self.assertEqual(chess_util.get_pinned_attackers_and_defenders(board, attackers, defenders, piece), (pinned_attackers, pinned_defenders))
+		self.assertEqual(chess_util.get_pinned_attackers_and_defenders(board, piece), (pinned_attackers, pinned_defenders))
 
 	def test_get_second_attackers_and_defenders(self):
 		board = chess.Board("2k1r3/2qnr3/8/4p3/8/2B4B/1Q2R3/2K1R3 w - - 0 1")
@@ -295,4 +286,4 @@ class TestChessUtil(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()
