@@ -826,7 +826,7 @@ def get_check_to_win_material_tactic_value(board, piece):
 	if board.is_check() and color == board.turn:
 		if chess_util.are_more_attackers_than_defenders(board, piece):
 			return PIECE_TYPES_TO_VALUES[board.piece_type_at(piece)] * FREE_TO_TAKE_MODIFIER_PENALTY
-		return get_trade_value(board, piece) * FREE_TO_TRADE_MODIFIER
+		return chess_util.get_trade_value(board, piece) * FREE_TO_TRADE_MODIFIER
 	return 0
 
 # Pieces get a bonus for being defended
