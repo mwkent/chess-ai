@@ -29,4 +29,4 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
       - name: Test with pytest
         run: |
-          pytest --ignore=lib/test_minimax_alpha_beta_ids.py --ignore=lib/test_minimax_alpha_beta_with_sort.py --ignore=lib/test_slow_minimax_alpha_beta.py
+          pytest --ignore=lib/test_minimax_alpha_beta_ids.py --ignore=lib/test_minimax_alpha_beta_with_sort.py --ignore=lib/test_slow_minimax_alpha_beta.py --ignore=lib/test_minimax.py
