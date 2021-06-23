@@ -422,7 +422,7 @@ def get_most_valuable_free_to_trade(board):
 	return most_valuable_piece, highest_trade_value
 
 def is_fifty_moves(board):
-	return board.halfmove_clock >= 100 and any(board.legal_moves())
+	return board.halfmove_clock >= 100 and any(board.legal_moves)
 
 # Is the game a draw
 # Treats 50 move rule and 3-fold repetition as a draw even though that is not necessarily the case
