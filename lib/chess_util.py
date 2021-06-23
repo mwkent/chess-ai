@@ -421,15 +421,18 @@ def get_most_valuable_free_to_trade(board):
 					highest_value_won = value_won
 	return most_valuable_piece, highest_trade_value
 
+def is_fifty_moves(board):
+	return board.halfmove_clock >= 100 and any(board.legal_moves())
+
 # Is the game a draw
 # Treats 50 move rule and 3-fold repetition as a draw even though that is not necessarily the case
 def is_draw(board):
-	return board.is_stalemate() or board.is_insufficient_material() or board.is_fifty_moves() or board.is_repetition()
+	return board.is_stalemate() or board.is_insufficient_material() or is_fifty_moves(board) or board.is_repetition()
 
 def is_or_can_claim_draw(board):
 	return board.is_stalemate() or board.is_insufficient_material() or board.can_claim_draw()
 
 # Lichess ends the game after the fifty move rule as well as three-fold repetition Todo: This is not guaranteed; it is based on user preference
 def is_game_over(board):
-	return board.is_game_over() or board.is_fifty_moves() or board.is_repetition()
+	return board.is_game_over() or is_fifty_moves(board) or board.is_repetition()
 
