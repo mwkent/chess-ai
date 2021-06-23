@@ -9,7 +9,6 @@
 import chess
 import chess_util
 import position_evaluator
-import square_position_evaluator
 import quiet_search as qs
 import datetime
 import time
@@ -168,7 +167,7 @@ def quiet_search2(board, alpha=position_evaluator.MIN_EVAL, beta=position_evalua
 			if evaluation >= beta:
 				return beta, -1
 			if evaluation > alpha:
-			   alpha = evaluation
+				alpha = evaluation
 		return alpha, sub_depth_reached
 
 	evaluation = evaluate_position(board, board.turn)
@@ -199,7 +198,7 @@ def quiet_search2(board, alpha=position_evaluator.MIN_EVAL, beta=position_evalua
 		if evaluation >= beta:
 			return beta, -1
 		if evaluation > alpha:
-		   alpha = evaluation
+			alpha = evaluation
 	return alpha, sub_depth_reached
 
 def quiet_search_helper(board, turn, evaluate_position=position_evaluator.evaluate_position, sort_moves=True):
@@ -244,7 +243,7 @@ def quiet_search(board, old_evaluation=None, alpha=position_evaluator.MIN_EVAL, 
 			if sub_evaluation >= beta:
 				return beta, -1
 			if sub_evaluation > alpha:
-			   alpha = sub_evaluation
+				alpha = sub_evaluation
 		return alpha, sub_depth_reached
 
 	if evaluation >= beta:
@@ -268,7 +267,7 @@ def quiet_search(board, old_evaluation=None, alpha=position_evaluator.MIN_EVAL, 
 		if sub_evaluation >= beta:
 			return beta, -1
 		if sub_evaluation > alpha:
-		   alpha = sub_evaluation
+			alpha = sub_evaluation
 	return alpha, sub_depth_reached
 
 def get_move_value(board, turn, move, evaluate_position):
