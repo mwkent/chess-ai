@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Custom
+log.dat
+
+lib/.project
+lib/.pydevproject
+lib/delete/
+lib/log.dat
