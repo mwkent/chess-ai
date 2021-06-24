@@ -50,6 +50,10 @@ def uci():
 def is_ready():
 	send('readyok')
 
+# Todo: Implement
+def set_option():
+	pass
+
 def uci_new_game():
 	# Nothing is required, at this point, to start a new UCI game
 	pass
@@ -189,6 +193,9 @@ def main():
 
 			elif parts[0] == 'isready':
 				is_ready()
+
+			elif parts[0] == 'setoption':
+				set_option()
 
 			elif parts[0] == 'ucinewgame':
 				uci_new_game()
