@@ -207,7 +207,7 @@ def main():
 				fen(board)
 
 			else:
-				send("Unknown command =", parts[0])
+				send("Unknown command =%s" % parts[0])
 
 				sys.stdout.flush()
 
