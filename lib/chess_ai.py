@@ -1,4 +1,4 @@
-import chess
+from board import Board
 import chess.pgn
 from queue import PriorityQueue
 from itertools import count
@@ -21,7 +21,7 @@ def play(board):
 		board.push(move_to_make)
 
 
-board = chess.Board()
+board = Board()
 
 play(board)
 print()

@@ -1,7 +1,7 @@
 # Handles UCI (Universal Chess Interface)
 # See UCI protocol: http://wbec-ridderkerk.nl/html/UCIProtocol.html
 
-from chess import Board
+from board import Board
 from multiprocessing import Queue
 import sys
 import threading
@@ -207,7 +207,7 @@ def main():
 				fen(board)
 
 			else:
-				send("Unknown command =", parts[0])
+				send("Unknown command =%s" % parts[0])
 
 				sys.stdout.flush()
 

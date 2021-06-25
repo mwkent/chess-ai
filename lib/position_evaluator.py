@@ -176,13 +176,13 @@ def get_phase(board, color):
 	return 1 - (scaled_piece_value_total * 1.0 / scaled_min_opening_total)
 
 def is_endgame(board, color):
-	return get_phase(board, color) == 1
+	return board.get_phase(color) == 1
 
 # value_range is either a list of two values or a singular value
 def get_eval(board, color, value_range):
 	value = value_range
 	if isinstance(value_range, list):
-		phase = get_phase(board, color)
+		phase = board.get_phase(color)
 		value_diff = value_range[1] - value_range[0]
 		value = phase * value_diff + value_range[0]
 	return value
