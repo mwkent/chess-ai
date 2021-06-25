@@ -1,7 +1,7 @@
 # Handles UCI (Universal Chess Interface)
 # See UCI protocol: http://wbec-ridderkerk.nl/html/UCIProtocol.html
 
-from chess import Board
+from board import Board
 from multiprocessing import Queue
 import sys
 import threading

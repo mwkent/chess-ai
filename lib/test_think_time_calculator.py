@@ -1,11 +1,11 @@
 import unittest
-import chess
 import think_time_calculator
+from board import Board
 
 class TestThinkTimeCalculator(unittest.TestCase):
 
 	def test_endgame(self):
-		board = chess.Board("8/2p1n3/6pp/8/2k5/1r6/K7/8 b - - 25 101")
+		board = Board("8/2p1n3/6pp/8/2k5/1r6/K7/8 b - - 25 101")
 		wtime = 151_000
 		winc = 5_000
 		# 8:23
@@ -18,7 +18,7 @@ class TestThinkTimeCalculator(unittest.TestCase):
 
 	# 5+3
 	def test_start_position_blitz(self):
-		board = chess.Board()
+		board = Board()
 		wtime = 300_000
 		winc = 3_000
 		btime = 300_000
@@ -27,4 +27,4 @@ class TestThinkTimeCalculator(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+	unittest.main()
