@@ -2,6 +2,7 @@ import unittest
 import think_time_calculator
 from board import Board
 
+
 class TestThinkTimeCalculator(unittest.TestCase):
 
 	def test_endgame(self):
@@ -12,13 +13,12 @@ class TestThinkTimeCalculator(unittest.TestCase):
 		btime = 506_000
 		binc = 5_000
 		think_time = think_time_calculator.get_max_think_time(board, wtime, winc, btime, binc)
-		#print("endgame, 8:23 on clock =", think_time)
+		# print("endgame, 8:23 on clock =", think_time)
 		self.assertTrue(think_time > 10)
 
-
-	# 5+3
 	def test_start_position_blitz(self):
 		board = Board()
+		# 5+3 time
 		wtime = 300_000
 		winc = 3_000
 		btime = 300_000
