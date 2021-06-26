@@ -42,7 +42,7 @@ def get_diagonals(square):
 			diagonal_file = file + file_mod
 			diagonal_rank = rank + rank_mod
 			if diagonal_file >= chess.square_file(chess.A1) and diagonal_file <= chess.square_file(chess.H8) \
-			and diagonal_rank >= chess.square_rank(chess.A1) and diagonal_rank <= chess.square_rank(chess.H8):
+				and diagonal_rank >= chess.square_rank(chess.A1) and diagonal_rank <= chess.square_rank(chess.H8):
 				diagonal_squares = diagonal_squares.union(chess.SquareSet.ray(square, chess.square(diagonal_file, diagonal_rank)))
 	return diagonal_squares
 
@@ -135,7 +135,8 @@ def has_minor_or_major_pieces(board, color):
 
 # Does color have knights and no bishops, rooks, or queens?
 def has_only_knight_minor_or_major_pieces(board, color):
-	return board.pieces(chess.KNIGHT, color) and not any(board.pieces(piece_type, color) for piece_type in [chess.BISHOP, chess.ROOK, chess.QUEEN])
+	return board.pieces(chess.KNIGHT, color) and not any(board.pieces(piece_type, color) \
+		for piece_type in [chess.BISHOP, chess.ROOK, chess.QUEEN])
 
 # Returns the piece in pieces with the least value
 # King is considered the highest valued piece, then queen, etc.
@@ -143,8 +144,9 @@ def get_min_valued_piece(board, pieces):
 	min_value_piece = None
 	for piece in pieces:
 		piece_type = board.piece_type_at(piece)
-		if min_value_piece == None or board.piece_type_at(min_value_piece) == chess.KING or \
-			(piece_type != chess.KING and PIECE_TYPES_TO_VALUES[piece_type] < PIECE_TYPES_TO_VALUES[board.piece_type_at(min_value_piece)]):
+		if min_value_piece is None or board.piece_type_at(min_value_piece) == chess.KING or \
+			(piece_type != chess.KING and \
+			PIECE_TYPES_TO_VALUES[piece_type] < PIECE_TYPES_TO_VALUES[board.piece_type_at(min_value_piece)]):
 			min_value_piece = piece
 	return min_value_piece
 
@@ -192,7 +194,7 @@ def get_battery_attackers(board, square, color, attackers):
 	for attacker in attackers:
 		if board.piece_type_at(attacker) in [chess.PAWN, chess.BISHOP, chess.ROOK, chess.QUEEN]:
 			# Pieces attacking the attacker; should not include existing attackers or attacked piece
-			attacker_attackers = [attacker_attacker for attacker_attacker in board.attackers(color, attacker) \
+			attacker_attackers = [attacker_attacker for attacker_attacker in board.attackers(color, attacker)
 				if attacker_attacker != square and attacker_attacker not in attackers]
 			for attacker_attacker in attacker_attackers:
 				# A battery is formed attacking the square
@@ -236,11 +238,11 @@ def get_second_attackers_and_defenders(board, square, first_attackers, first_def
 	defend_color = board.color_at(square)
 	second_attackers = get_battery_attackers(board, square, not defend_color, first_attackers)
 	second_defenders = get_battery_attackers(board, square, defend_color, first_defenders)
-	
+
 	pinned_attackers, pinned_defenders = get_pinned_attackers_and_defenders(board, square)
 	second_attackers += pinned_attackers
 	second_defenders += pinned_defenders
-	
+
 	# Todo: Is there a better way to solve this?
 	# Need to check if there are batteries being formed with pinned attackers and defenders as well
 	second_attackers += get_battery_attackers(board, square, not defend_color, pinned_attackers)

@@ -9,7 +9,7 @@ class Board(chess.Board, object):
         super(Board, self).__init__(fen=fen, chess960=chess960)
 
     def get_phase(self, color):
-        if self._phase[color] == None:
+        if self._phase[color] is None:
             piece_value_total = 0
             for piece_type in NON_PAWN_PIECE_TYPES:
                 pieces = self.pieces(piece_type, not color)
