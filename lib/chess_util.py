@@ -1,7 +1,7 @@
 # Handles chess related utility functions
 import chess
 
-#Todo: Fix free to take - For instance pawn defended by pawn can't be taken by queen and rook
+# Todo: Fix free to take - For instance pawn defended by pawn can't be taken by queen and rook
 # Also pieces can defend/attack through opponent's pieces
 
 MAX_RANK = 7
@@ -318,11 +318,9 @@ def is_free_to_take(board, piece):
 	# e.g. if it's white's turn, a white piece cannot be free to take
 	if board.turn == color:
 		return False
-	first_attackers, second_attackers, first_defenders, second_defenders = get_attackers_and_defenders(board, piece)
+	first_attackers, second_attackers, first_defenders, second_defenders = board.get_attackers_and_defenders(piece)
 	num_attackers = len(first_attackers) + len(second_attackers)
 	num_defenders = len(first_defenders) + len(second_defenders)
-	first_attackers.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[board.piece_type_at(piece)])
-	first_defenders.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[board.piece_type_at(piece)])
 	if len(first_attackers) >= 2:
 		all_defenders = first_defenders + second_defenders
 		lowest_two_attacker_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(first_attackers[0])] + \

@@ -874,7 +874,6 @@ def extend_checks(board, turn, check_tactics, extend):
 	return evaluation
 
 # Check to see if player is getting mated
-# Todo: Fix? Needs to make sure every check line leads to mate
 def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
 	if board.is_checkmate():
 		if board.turn == turn:
@@ -885,23 +884,30 @@ def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
 		return 0
 	# Search all possible moves when in check
 	if board.is_check():
-		num_checks_left -= 1
-		num_checks_made += 1
+		evaluation = None
 		for move in board.legal_moves:
 			board.push(move)
-			evaluation = search_getting_mated(board, turn, num_checks_left, num_checks_made)
-			if evaluation != 0:
-				return evaluation
+			search_evaluation = search_getting_mated(board, turn, num_checks_left, num_checks_made)
 			board.pop()
+			# At least one line does not lead to forced mate
+			if search_evaluation == 0:
+				return search_evaluation
+			if evaluation is None:
+				evaluation = search_evaluation
+			# A check was intercepted with another check leading to forced mate
+			elif evaluation != search_evaluation:
+				return 0
+		return evaluation
 	else:
 		# Search checks
 		for move in board.legal_moves:
+			evaluation = 0
 			board.push(move)
 			if board.is_check():
-				evaluation = search_getting_mated(board, turn, num_checks_left, num_checks_made)
-				if evaluation != 0:
-					return evaluation
+				evaluation = search_getting_mated(board, turn, num_checks_left-1, num_checks_made+1)
 			board.pop()
+			if evaluation != 0:
+				return evaluation
 	return 0
 
 # Returns centipawn (pawn worth 100 points) evaluation
@@ -918,6 +924,9 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
 	if chess_util.is_draw(board):
 		return DRAW_EVAL
 	if extend:
+		forced_mate_evaluation = search_getting_mated(board, turn)
+		if forced_mate_evaluation != 0:
+			return forced_mate_evaluation
 		if board.is_check():
 			return extend_search(board, turn, check_tactics, extend=False)
 		else:

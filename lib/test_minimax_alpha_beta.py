@@ -90,7 +90,7 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 
 	def test_mate_in_2(self):
 		board = Board("r1n2n1k/pp4b1/2p3QN/2Pp4/1P1P2P1/P3r2q/1B6/R4RK1 w - - 2 28")
-		move = minimax_alpha_beta.pick_move(board, 2)
+		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("f1f8"))		
 
 	def test_counterattack(self):

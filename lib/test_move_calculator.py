@@ -3,6 +3,7 @@ import chess
 import move_calculator
 import chess_util
 from board import Board
+import position_evaluator
 
 def get_move(board, time=.5):
 		return move_calculator.calculate(board, time)[1]
@@ -89,8 +90,6 @@ class TestMoveCalculator(unittest.TestCase):
 		move = get_move(board)
 		self.assertIn(move, [chess.Move.from_uci("e6d5"), chess.Move.from_uci("c6a5")])
 
-	@unittest.skip
-	# Failing: Needs to go to depth of 2 to see mate
 	def test_mate_in_2(self):
 		board = Board("r1n2n1k/pp4b1/2p3QN/2Pp4/1P1P2P1/P3r2q/1B6/R4RK1 w - - 2 28")
 		move = get_move(board)
@@ -105,6 +104,11 @@ class TestMoveCalculator(unittest.TestCase):
 		board = Board("1r4r1/1pp2p1p/2nbkp2/pB1q4/P2Pp3/1P2P1P1/3NQP1P/1RR3K1 w - - 1 19")
 		move = get_move(board)
 		self.assertEqual(move, chess.Move.from_uci("b5c4"))
+		
+	def test_is_mating(self):
+		self.assertTrue(move_calculator.is_mating(position_evaluator.MAX_EVAL - 5))
+		self.assertTrue(move_calculator.is_mating(position_evaluator.MIN_EVAL + 5))
+		self.assertFalse(move_calculator.is_mating(0))
 
 
 if __name__ == '__main__':

@@ -475,7 +475,6 @@ class TestPositionEvaluator(unittest.TestCase):
 			board.push_uci(move)
 		self.assertEqual(position_evaluator.evaluate_position(board, turn, check_tactics=True, extend=False), evaluation / 2)
 
-	@unittest.skip("need to fix this code")
 	def test_search_getting_mated(self):
 		board = Board("5rk1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 b - - 6 30")
 		turn = chess.BLACK
@@ -484,12 +483,23 @@ class TestPositionEvaluator(unittest.TestCase):
 		# Mate in 2
 		board = Board("3r2k1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 w - - 7 31")
 		turn = chess.BLACK
-		self.assertEqual(position_evaluator.search_getting_mated(board, turn), position_evaluator.MIN_EVAL + 1)
+		self.assertEqual(position_evaluator.search_getting_mated(board, turn), position_evaluator.MIN_EVAL + 2)
 
 		# Mate in 1
 		board = Board("3r2kR/p1p1q3/5p2/2p1p2Q/N7/pP2P3/K1P5/3r4 b - - 8 31")
 		turn = chess.BLACK
-		self.assertEqual(position_evaluator.search_getting_mated(board, turn), position_evaluator.MIN_EVAL)
+		self.assertEqual(position_evaluator.search_getting_mated(board, turn), position_evaluator.MIN_EVAL + 1)
+
+		# Not every line leads to forced mate
+		board = Board("8/pppk4/8/8/8/8/8/1KR4R w - - 0 1")
+		turn = chess.WHITE
+		self.assertEqual(position_evaluator.search_getting_mated(board, turn), 0)
+
+	def test_forced_mate(self):
+		# Mate in 2
+		board = Board("3r2k1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 w - - 7 31")
+		turn = chess.BLACK
+		self.assertEqual(position_evaluator.evaluate_position(board, turn), position_evaluator.MIN_EVAL + 2)
 
 	def test(self):
 		turn = chess.WHITE
