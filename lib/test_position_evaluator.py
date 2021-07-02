@@ -3,6 +3,7 @@ import chess
 import position_evaluator
 from board import Board
 
+
 class TestPositionEvaluator(unittest.TestCase):
 
 	def test_opposite_evaluations(self):
@@ -11,7 +12,7 @@ class TestPositionEvaluator(unittest.TestCase):
 
 	def test_mate_in_1(self):
 		board = Board("r1bqkbnr/1p1np2p/2P2p2/p5pQ/P2PP3/8/1P3PPP/RNB1KBNR b KQkq - 1 7")
-		self.assertEqual(position_evaluator.evaluate_position(board, chess.WHITE), position_evaluator.MAX_EVAL)    	
+		self.assertEqual(position_evaluator.evaluate_position(board, chess.WHITE), position_evaluator.MAX_EVAL)
 
 	def test_connected_rooks(self):
 		board = Board("r4rk1/pbppqppp/1p3n2/2b5/4P3/2N3P1/PPP2PBP/R1BQ1RK1 w - - 7 11")

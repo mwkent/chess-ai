@@ -1,6 +1,7 @@
 # Handles calculating how much time the engine can think for
 
 # Returns the max amount of time the engine can think for in seconds
+# Parameters are passed in milliseconds
 def get_max_think_time(board, white_time, white_increment, black_time, black_increment):
 	player_time = white_time
 	player_increment = white_increment

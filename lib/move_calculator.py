@@ -10,6 +10,7 @@ MIN_MATING_EVAL = position_evaluator.MIN_EVAL + 10
 
 ponder_move = None
 
+
 # No threading involved
 # Finds the best move to play according to the chess engine
 # Returns [move eval, move, depth reached, time taken]
@@ -23,7 +24,7 @@ def calculate(board, max_think_time, max_depth=20, is_ponder=False):
     start_ts = time.time()
 
     # If there's only one move, no need to calculate
-    moves = list(board.legal_moves) 
+    moves = list(board.legal_moves)
     if len(moves) == 1:
         return [None, moves[0], 0, 0]
 
@@ -44,6 +45,7 @@ def calculate(board, max_think_time, max_depth=20, is_ponder=False):
     elapsed_time = time.time() - start_ts
 
     return result
+
 
 def is_mating(evaluation: int) -> bool:
     return evaluation >= MAX_MATING_EVAL or evaluation <= MIN_MATING_EVAL
