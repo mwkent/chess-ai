@@ -103,6 +103,7 @@ class Board(chess.Board, object):
         (List[chess.Square], List[chess.Square], List[chess.Square], List[chess.Square]):
         if piece not in self._squares_to_attackers_and_defenders:
             first_attackers, first_defenders = self.get_first_attackers_and_defenders(piece)
+            # Sort to know which are the least valued attackers and defenders
             first_attackers.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[self.piece_type_at(piece)])
             first_defenders.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[self.piece_type_at(piece)])
             second_attackers, second_defenders = chess_util.get_second_attackers_and_defenders(self, piece, first_attackers, first_defenders)
