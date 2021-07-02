@@ -2,6 +2,7 @@ import chess
 from collections import defaultdict
 import chess_util
 import endgame
+from typing import List
 
 # Todo: Knight strength with pawns; knights are stronger in closed positions
 # Todo: Avoid exchanges when down material/exchange when up material
@@ -155,6 +156,7 @@ HAS_CASTLED_EVAL = 50
 
 # Todo: Delete and use chess_util copy
 PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, chess.ROOK: 500, chess.QUEEN: 900}
+PIECE_TYPES_TO_ROUGH_VALUES = {chess.PAWN: 100, chess.KNIGHT: 300, chess.BISHOP: 300, chess.ROOK: 500, chess.QUEEN: 900}
 NON_PAWN_PIECE_TYPES = [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
 PIECE_TYPES = [chess.PAWN] + NON_PAWN_PIECE_TYPES
 PIECE_TYPES_STRONG_TO_WEAK = [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.PAWN]
@@ -617,6 +619,7 @@ def get_rook_aligned_with_bishop_penalty(board, rook):
 				return ROOK_ALIGNED_PENALTY
 	return 0
 
+
 # What makes a rook stronger or weaker
 def get_rook_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
 	evaluation = 0
@@ -643,6 +646,7 @@ def get_rook_value(board, turn, free_to_take=None, free_to_trade=None, free_to_t
 	evaluation += get_connected_rooks_value(board, rooks)
 	return evaluation
 
+
 # Is the queen aligned with the opponent's bishop or rook and is there one piece in between
 def get_queen_aligned_value(board, color):
 	value = 0
@@ -666,6 +670,7 @@ def get_queen_aligned_value(board, color):
 					value -= QUEEN_ALIGNED_PENALTY
 	return value
 
+
 # What makes a queen stronger or weaker
 def get_queen_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
 	evaluation = 0
@@ -686,6 +691,7 @@ def get_queen_value(board, turn, free_to_take=None, free_to_trade=None, free_to_
 	evaluation += get_queen_aligned_value(board, turn)
 	return evaluation
 
+
 def activate_king(board, color):
 	max_distance_to_pawn = 7
 	king = board.king(color)
@@ -696,9 +702,11 @@ def activate_king(board, color):
 		value += distance_to_pawn_bonus * (max_distance_to_pawn - chess.square_distance(king, pawn))
 	return value
 
+
 def infiltrate_king(board, color):
 	king = board.king(color)
 	return chess_util.get_adjusted_rank(king, color)
+
 
 # open and half open files towards the king put the king at risk
 def get_open_file_to_king_penalty(board, color):
@@ -717,6 +725,7 @@ def get_open_file_to_king_penalty(board, color):
 				penalty += HALF_OPEN_ADJACENT_FILE_TO_KING_PENALTY
 	return penalty
 
+
 def get_king_value(board, color, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
 	king = board.king(color)
 	evaluation = 0
@@ -733,6 +742,7 @@ def get_king_value(board, color, free_to_take=None, free_to_trade=None, free_to_
 	#print("piece on bishop color penalty =", get_piece_on_bishop_color_penalty(board, king))
 	return evaluation
 
+
 # How safe is color's king?
 def get_king_safety(board, color):
 	evaluation = 0
@@ -747,12 +757,14 @@ def get_king_safety(board, color):
 	#print("pawn wall =", get_pawn_wall_value(board, color))
 	return evaluation
 
+
 # Favor putting the king on a square closer to the corner
 def get_king_square_safety(board, color):
 	king_square = board.king(color)
 	if color == chess.WHITE:
 		return get_eval(board, color, SQUARES_TO_WHITE_KING_SAFETY.get(king_square, 0))
 	return get_eval(board, color, SQUARES_TO_BLACK_KING_SAFETY.get(king_square, 0))
+
 
 def get_pawn_wall_value(board, color):
 	king_square = board.king(color)
@@ -768,13 +780,14 @@ def get_pawn_wall_value(board, color):
 		if board.piece_type_at(square) == chess.PAWN:
 			total_value += get_eval(board, color, CLOSE_PAWN_WALL_EVAL)
 
-	far_wall_squares = 	[chess_util.add_rank(square, color_rank_modifier) for square in close_wall_squares]
+	far_wall_squares = [chess_util.add_rank(square, color_rank_modifier) for square in close_wall_squares]
 	far_wall_squares = list(filter(None, far_wall_squares))
 	for square in far_wall_squares:
 		if board.piece_type_at(square) == chess.PAWN:
 			total_value += get_eval(board, color, FAR_PAWN_WALL_EVAL)
 
 	return total_value
+
 
 # Delete: Too performance costly?
 # How many moves will check color's king
@@ -793,11 +806,13 @@ def get_num_checks(board, color):
 		board.pop()
 	return num_checks
 
+
 # returns the percentage of squares adjacent to color's king that are attacked by not color
 def get_percent_attacked_adjacent(board, color):
 	adjacent_squares = chess_util.get_adjacent_squares(board.king(color))
 	num_attacked_squares = sum(1 for adjacent_square in adjacent_squares if board.is_attacked_by(not color, adjacent_square))
 	return 1.0 * num_attacked_squares / len(adjacent_squares)
+
 
 def get_castling_eval(board, turn):
 	if board.has_castling_rights(turn):
@@ -805,6 +820,7 @@ def get_castling_eval(board, turn):
 	if has_castled(board, turn):
 		return HAS_CASTLED_EVAL	
 	return 0
+
 
 def has_castled(board, turn):
 	print("Move stack =", board.move_stack)
@@ -818,6 +834,7 @@ def has_castled(board, turn):
 			return True
 	return False
 
+
 # Is the opponent in check, and you are winning material
 # Todo: Is this needed or is extend better here?
 # Todo: Delete?
@@ -828,6 +845,7 @@ def get_check_to_win_material_tactic_value(board, piece):
 			return PIECE_TYPES_TO_VALUES[board.piece_type_at(piece)] * FREE_TO_TAKE_MODIFIER_PENALTY
 		return chess_util.get_trade_value(board, piece) * FREE_TO_TRADE_MODIFIER
 	return 0
+
 
 # Pieces get a bonus for being defended
 def get_defended_bonus(board, piece):
@@ -841,11 +859,13 @@ def get_defended_bonus(board, piece):
 		return DEFENDED_EVAL
 	return 0
 
+
 def get_evaluation_for_both_sides(get_evaluation, board, turn, *args):
 	#print(get_evaluation.__name__)
 	evaluation = get_evaluation(board, turn, *args) - get_evaluation(board, not turn, *args)
 	#print(evaluation)
 	return evaluation
+
 
 def extend_search(board, turn, check_tactics, extend):
 	maximizing = board.turn == turn
@@ -858,6 +878,7 @@ def extend_search(board, turn, check_tactics, extend):
 		evaluation = min_or_max(evaluation, evaluate_position(board, turn, check_tactics, extend))
 		board.pop()
 	return evaluation
+
 
 # Search checks in the position
 def extend_checks(board, turn, check_tactics, extend):
@@ -872,6 +893,27 @@ def extend_checks(board, turn, check_tactics, extend):
 			evaluation = min_or_max(evaluation, evaluate_position(board, turn, check_tactics, extend))
 			board.pop()
 	return evaluation
+
+
+# Todo: Is this used?
+def get_equal_or_greater_trade_moves(board: chess.Board) -> List[chess.Move]:
+	moves = []
+	for move in board.legal_moves:
+		if board.is_en_passant(move):
+			moves += move
+		elif board.is_capture(move):
+			if PIECE_TYPES_TO_ROUGH_VALUES[board.piece_type_at(move.from_square())] <= \
+				PIECE_TYPES_TO_ROUGH_VALUES[board.piece_type_at(move.to_square())]:
+				moves += move
+	return moves
+
+
+# Todo: Finish implementing
+# Extend fair trades, taking free pieces, good trades
+def extend_trades(board: chess.Board, turn: chess.Color) -> int:
+	for move in get_equal_or_greater_trade_moves(board):
+		pass
+
 
 # Check to see if player is getting mated
 def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
@@ -910,6 +952,7 @@ def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
 				return evaluation
 	return 0
 
+
 # Returns centipawn (pawn worth 100 points) evaluation
 # A positive number is good for turn while negative is bad
 # If quiet search is being used then check_tactics will not be needed since the search will continue until tactics are removed from the position
@@ -936,7 +979,7 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
 	
 	free_to_take = chess_util.get_most_valuable_free_to_take(board)
 	free_to_trade, free_to_trade_value = chess_util.get_most_valuable_free_to_trade(board)
-	if free_to_take != None and free_to_trade != None:
+	if free_to_take is not None and free_to_trade is not None:
 		free_to_take_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(free_to_take)]
 		free_to_trade_value_won = PIECE_TYPES_TO_VALUES[board.piece_type_at(free_to_trade)] - free_to_trade_value
 		# More value in taking free_to_take
@@ -968,12 +1011,14 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
 		evaluation /= 2
 	return evaluation
 
+
 def get_victim_value(board, move):
 	if not board.is_capture(move):
 		return 0
 	if board.is_en_passant(move):
 		return PIECE_TYPES_TO_VALUES[chess.PAWN]
 	return PIECE_TYPES_TO_VALUES[board.piece_type_at(move.to_square)]
+
 
 # Gets simpler evaluation based on old evaluation
 def evaluate_position_after_capture(board, turn, old_evaluation):
