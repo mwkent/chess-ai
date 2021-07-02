@@ -133,5 +133,10 @@ log.dat
 
 lib/.project
 lib/.pydevproject
+lib/board2.py
 lib/delete/
 lib/log.dat
+lib/square_position_evaluator.py
+lib/test_square_position_evaluator.py
+
+tests/
