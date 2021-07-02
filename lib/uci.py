@@ -129,7 +129,7 @@ def go(parts, board):
 
 		elif parts[nr] == 'ponder':
 			ponder = True
-			ponder_move = int(parts[nr + 1])
+			ponder_move = parts[nr + 1]
 			nr += 1
 
 		else:
@@ -137,13 +137,12 @@ def go(parts, board):
 
 		nr += 1
 
-	###
 	current_duration = movetime
 
 	if current_duration:
 		current_duration = float(current_duration) / 1000.0
 
-	elif wtime and btime:
+	elif wtime is not None and btime is not None:
 		current_duration = think_time_calculator.get_max_think_time(board, wtime, winc, btime, binc)
 
 	if current_duration:
@@ -163,8 +162,10 @@ def go(parts, board):
 		print("ERROR getting move")
 		send('bestmove a1a1')
 
+
 def fen(board):
 	send('%s' % board.fen())
+
 
 def main():
 	try:
@@ -225,6 +226,7 @@ def main():
 		send(ex)
 		l(str(ex))
 		l(traceback.format_exc())
+
 
 if len(sys.argv) == 2:
 	set_l(sys.argv[1])
