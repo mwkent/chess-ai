@@ -427,7 +427,7 @@ def get_promotion_support_bonus(board, pawn):
     if chess_util.are_more_attackers_than_defenders(board, next_square, color):
         bonus += DEFENDING_SQUARE_IN_FRONT_OF_PAWN_BONUS
     next_next_square = chess_util.add_rank(next_square, modifier)
-    if next_next_square != None and chess_util.are_more_attackers_than_defenders(board, next_next_square, color):
+    if next_next_square is not None and chess_util.are_more_attackers_than_defenders(board, next_next_square, color):
         bonus += DEFENDING_TWO_SQUARES_IN_FRONT_OF_PAWN_BONUS
     return bonus
 
@@ -640,7 +640,7 @@ def get_undeveloped_bishop_blocked_penalty(board, bishop):
         rank_adjustment = 1 if color == chess.WHITE else -1
         blocking_squares = [chess_util.add_rank_and_file(
             bishop, rank_adjustment, 1), chess_util.add_rank_and_file(bishop, rank_adjustment, -1)]
-        if all(blocking_square == None or board.color_at(blocking_square) == color for blocking_square in blocking_squares):
+        if all(blocking_square is None or board.color_at(blocking_square) == color for blocking_square in blocking_squares):
             return BISHOP_BLOCKED_PENALTY
     return 0
 
@@ -744,26 +744,26 @@ def get_rook_value(board, turn, free_to_take=None, free_to_trade=None, free_to_t
 
 
 # Is the queen aligned with the opponent's bishop or rook and is there one piece in between
+
+def get_queen_aligned_with_piece_type_value(board, queen_color, queen, square, piece_type):
+    value = 0
+    if board.piece_type_at(square) == piece_type and board.color_at(square) != queen_color:
+        num_pieces_in_between = 0
+        for in_between_square in chess.SquareSet.between(queen, square):
+            if board.piece_at(in_between_square):
+                num_pieces_in_between += 1
+        if num_pieces_in_between == 1:
+            value -= QUEEN_ALIGNED_PENALTY
+    return value
+
 def get_queen_aligned_value(board, color):
     value = 0
     queens = board.pieces(chess.QUEEN, color)
     for queen in queens:
         for diagonal_square in chess_util.get_diagonals(queen):
-            if board.piece_type_at(diagonal_square) == chess.BISHOP and board.color_at(diagonal_square) != color:
-                num_pieces_in_between = 0
-                for in_between_square in chess.SquareSet.between(queen, diagonal_square):
-                    if board.piece_at(in_between_square):
-                        num_pieces_in_between += 1
-                if num_pieces_in_between == 1:
-                    value -= QUEEN_ALIGNED_PENALTY
+            value += get_queen_aligned_with_piece_type_value(board, color, queen, diagonal_square, chess.BISHOP)
         for file_or_rank_square in chess_util.get_file_and_rank_squares(queen):
-            if board.piece_type_at(file_or_rank_square) == chess.ROOK and board.color_at(file_or_rank_square) != color:
-                num_pieces_in_between = 0
-                for in_between_square in chess.SquareSet.between(queen, file_or_rank_square):
-                    if board.piece_at(in_between_square):
-                        num_pieces_in_between += 1
-                if num_pieces_in_between == 1:
-                    value -= QUEEN_ALIGNED_PENALTY
+            value += get_queen_aligned_with_piece_type_value(board, color, queen, file_or_rank_square, chess.ROOK)
     return value
 
 
