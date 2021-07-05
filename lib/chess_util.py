@@ -28,8 +28,7 @@ def on_light_squares(pieces):
 	return int(pieces) & chess.BB_LIGHT_SQUARES
 
 # Returns True if one of the pieces is on a dark square
-# pieces must be a SquareSet
-def on_dark_squares(pieces):
+def on_dark_squares(pieces: chess.SquareSet) -> bool:
 	return int(pieces) & chess.BB_DARK_SQUARES
 
 # Returns SquareSet containing all squares on the diagonals associated with the square
