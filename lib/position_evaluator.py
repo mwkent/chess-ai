@@ -828,6 +828,26 @@ def get_open_file_to_king_penalty(board, color):
     return penalty
 
 
+# Todo
+# Open diagonals towards the king put the king at risk
+def get_open_diagonals_to_king_penalty(board, king_color):
+    penalty = 0
+    if (len(board.pieces(chess.QUEEN, not king_color)) > 1 or
+        len(board.pieces(chess.BISHOP, not king_color)) > 1) and not board.has_castling_rights(color):
+        king = board.king(king_color)
+        if chess_util.is_open_file(board, king):
+            penalty += OPEN_FILE_TO_KING_PENALTY
+        if chess_util.is_half_open_file(board, king):
+            penalty += HALF_OPEN_FILE_TO_KING_PENALTY
+        for adjacent_file in chess_util.get_adjacent_files(king):
+            adjacent_square = chess.square(adjacent_file, 0)
+            if chess_util.is_open_file(board, adjacent_square):
+                penalty += OPEN_ADJACENT_FILE_TO_KING_PENALTY
+            if chess_util.is_half_open_file(board, adjacent_square):
+                penalty += HALF_OPEN_ADJACENT_FILE_TO_KING_PENALTY
+    return penalty
+
+
 def get_king_value(board, color, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
     king = board.king(color)
     evaluation = 0
@@ -1093,6 +1113,7 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
     free_to_trade, free_to_trade_value = chess_util.get_most_valuable_free_to_trade(
         board)
     if free_to_take is not None and free_to_trade is not None:
+    	# Todo: Free to take value is not necessarily the value of the first piece being taken
         free_to_take_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(
             free_to_take)]
         free_to_trade_value_won = PIECE_TYPES_TO_VALUES[board.piece_type_at(
