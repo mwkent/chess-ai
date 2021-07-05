@@ -833,7 +833,7 @@ def get_open_file_to_king_penalty(board, color):
 def get_open_diagonals_to_king_penalty(board, king_color):
     penalty = 0
     if (len(board.pieces(chess.QUEEN, not king_color)) > 1 or
-        len(board.pieces(chess.BISHOP, not king_color)) > 1) and not board.has_castling_rights(color):
+        len(board.pieces(chess.BISHOP, not king_color)) > 1) and not board.has_castling_rights(king_color):
         king = board.king(king_color)
         if chess_util.is_open_file(board, king):
             penalty += OPEN_FILE_TO_KING_PENALTY
