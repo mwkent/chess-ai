@@ -383,6 +383,12 @@ class TestPositionEvaluator(unittest.TestCase):
 		color = chess.WHITE
 		self.assertTrue(position_evaluator.is_pawn_promoting(board, pawn, color))
 
+		# Promotion square is defended
+		board = Board("rbk4r/pp4pp/3p1B2/3p1p2/8/1P2P3/PK1p1PPP/R4Q1R b kq - 0 20")
+		pawn = chess.D2
+		color = chess.BLACK
+		self.assertFalse(position_evaluator.is_pawn_promoting(board, pawn, color))
+
 	def test_get_pawn_promoting_bonus(self):
 		board = Board("8/2q1k1P1/8/8/8/8/8/5K2 w - - 0 1")
 		pawn = chess.G7
@@ -503,16 +509,18 @@ class TestPositionEvaluator(unittest.TestCase):
 		self.assertEqual(position_evaluator.evaluate_position(board, turn), position_evaluator.MIN_EVAL + 2)
 
 	def test(self):
-		turn = chess.WHITE
-		board = Board("3r1q1k/1p2r1pb/pnp1B2p/8/P1QP2P1/1PNRPP2/2P2R1P/6K1 b - - 8 36")
+		turn = chess.BLACK
+		board = Board("rbk4r/pp4pp/3p1q2/1Q1p1p2/8/1PB1P3/PK1p1PPP/R6R b kq - 1 20")
 		print()
-		print("pieces hanging")
+		print("doesn't take queen")
 		print(position_evaluator.evaluate_position(board, turn))
 
-		#board = Board("1k4r1/2p2p1p/p5Qp/1p2P3/3r1b2/5NP1/PP5P/R1R3K1 b - - 0 23")
-		#print()
-		#print("trades queen")
-		#print(position_evaluator.evaluate_position(board, turn))
+		board = Board("rbk4r/pp4pp/3p1B2/3p1p2/8/1P2P3/PK1p1PPP/R4Q1R b kq - 0 20")
+		print()
+		print("takes queen")
+		print(position_evaluator.evaluate_position(board, turn))
+		
+		print(position_evaluator.is_pawn_promoting(board, chess.D2, chess.BLACK))
 
 
 if __name__ == '__main__':

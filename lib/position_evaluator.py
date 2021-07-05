@@ -386,18 +386,19 @@ def can_knight_catch_pawn(board, knight, pawn):
             knight_file += file_modifier * min(2, file_diff)
     return False
 
+
 # Todo: Check when opponent has knight or bishop as well
-
-
 def is_pawn_promoting(board, pawn, color):
     promotion_rank = 7
     adjusted_rank = chess_util.get_adjusted_rank(pawn, color)
-    if adjusted_rank == promotion_rank - 1 and board.turn == color and not board.is_check() and not board.is_attacked_by(not color, pawn):
+    promotion_square = endgame.get_promotion_square(pawn, color)
+    # Todo: is_attacked_by should not consider pinned attackers
+    if adjusted_rank == promotion_rank - 1 and board.turn == color and not board.is_check() \
+        and not board.is_attacked_by(not color, pawn) and not board.is_attacked_by(not color, promotion_square):
         return True
     if not chess_util.has_minor_or_major_pieces(board, not color):
         if endgame.is_pawn_outside_of_square(board, pawn):
             return True
-        promotion_square = endgame.get_promotion_square(pawn, color)
         path_to_promote = chess.SquareSet.between(pawn, promotion_square)
         path_to_promote.add(promotion_square)
         if all(board.is_attacked_by(color, square) for square in path_to_promote):
@@ -407,8 +408,6 @@ def is_pawn_promoting(board, pawn, color):
         return True
     return False
 
-# Todo: Each rank should give an extra bonus
-
 
 def get_pawn_promoting_bonus(board, pawn, color):
     if is_pawn_promoting(board, pawn, color):
@@ -416,9 +415,8 @@ def get_pawn_promoting_bonus(board, pawn, color):
         return PAWN_PROMOTING_RANK_BONUS[adjusted_pawn_rank]
     return 0
 
+
 # Defend squares in front of pawn
-
-
 def get_promotion_support_bonus(board, pawn):
     color = board.color_at(pawn)
     modifier = 1 if color == chess.WHITE else -1
@@ -433,8 +431,6 @@ def get_promotion_support_bonus(board, pawn):
 
 # Should be used with passed pawns
 # Is there a rook behind or in front of the pawn
-
-
 def get_rook_behind_pawn_bonus(board, pawn):
     color = board.color_at(pawn)
     value = 0
@@ -1017,6 +1013,7 @@ def extend_checks(board, turn, check_tactics, extend):
     evaluation = evaluate_position(board, turn, check_tactics, extend=False)
     for move in board.legal_moves:
         if board.gives_check(move):
+            # print(move.uci())
             board.push(move)
             # if checks are bad, ignore them; if checks are good, update evaluation
             evaluation = min_or_max(evaluation, evaluate_position(
@@ -1113,7 +1110,7 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
     free_to_trade, free_to_trade_value = chess_util.get_most_valuable_free_to_trade(
         board)
     if free_to_take is not None and free_to_trade is not None:
-    	# Todo: Free to take value is not necessarily the value of the first piece being taken
+        # Todo: Free to take value is not necessarily the value of the first piece being taken
         free_to_take_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(
             free_to_take)]
         free_to_trade_value_won = PIECE_TYPES_TO_VALUES[board.piece_type_at(

@@ -206,6 +206,15 @@ class TestSlowMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 2)
 		self.assertEqual(move, chess.Move.from_uci("f7c7"))
 
+	def test_move_queen(self):
+		board = Board("rbk4r/pp4pp/3p1q2/3p1p2/8/1PBpP3/PK3PPP/R4Q1R b kq - 3 19")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertIn(move, {chess.Move.from_uci("f6f7"), chess.Move.from_uci("f6e7"), \
+							chess.Move.from_uci("f6g6"), chess.Move.from_uci("d5d4")})
+		move = minimax_alpha_beta.pick_move(board, 2)
+		self.assertIn(move, {chess.Move.from_uci("f6f7"), chess.Move.from_uci("f6e7"), \
+							chess.Move.from_uci("f6g6"), chess.Move.from_uci("d5d4")})
+
 	# Winning endgame test
 	#@unittest.skip("missing assert")
 	def test2(self):
@@ -215,11 +224,13 @@ class TestSlowMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 3)
 
 	def test(self):
-		board = Board("r2q3r/3kp2p/p2ppnp1/2p1P1Q1/Np6/3P4/PP3PPP/2R2R1K b - - 0 19")
+		board = Board("rbk4r/pp4pp/3p1q2/3p1p2/8/1PBpP3/PK3PPP/R4Q1R b kq - 3 19")
 		move = minimax_alpha_beta.pick_move(board, 1)
 		move = minimax_alpha_beta.pick_move(board, 2)
-		move = minimax_alpha_beta.pick_move(board, 3)
 
+		print("After saving queen")
+		board = Board("rbk4r/pp3qpp/3p4/3p1p2/8/1PBpP3/PK3PPP/R4Q1R w kq - 4 20")
+		move = minimax_alpha_beta.pick_move(board, 1)
 		#print()
 		#board.push_uci("g2g3")
 		#print("after best move")
