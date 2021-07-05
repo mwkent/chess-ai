@@ -1146,7 +1146,7 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
         else:
             # Not turn will decide to go for a draw if evaluation is good for turn
             evaluation = min(evaluation, DRAW_EVAL)
-    # Avoid repetions if you are in a better position; favor repetions if you are in a worse position
+    # Avoid repetitions if you are in a better position; favor repetitions if you are in a worse position
     if board.is_repetition(count=2):
         evaluation /= 2
     return evaluation
