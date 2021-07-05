@@ -1,6 +1,9 @@
 # Handles chess related utility functions
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import chess
-from board import Board
+if TYPE_CHECKING:
+	from board import Board
 
 # Todo: Fix free to take - For instance pawn defended by pawn can't be taken by queen and rook
 # Also pieces can defend/attack through opponent's pieces
