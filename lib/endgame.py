@@ -50,7 +50,7 @@ def has_pieces(board, color):
 	has_pieces = False
 	for piece_type in rook_or_queen_piece_types:
 		for piece in board.pieces(piece_type, color):
-			if not chess_util.is_free_to_take(board, piece):
+			if not chess_util.is_free_to_take_this_turn(board, piece):
 				has_rook_or_queen = True
 				has_pieces = True
 				break
@@ -110,7 +110,7 @@ def get_material_value(board, color):
 	for piece_type in PIECE_TYPES:
 		pieces = board.pieces(piece_type, color)
 		for piece in pieces:
-			if not chess_util.is_free_to_take(board, piece):
+			if not chess_util.is_free_to_take_this_turn(board, piece):
 				material_value += PIECE_TYPES_TO_VALUES[piece_type]
 	return material_value
 

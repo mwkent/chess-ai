@@ -41,8 +41,9 @@ class Board(chess.Board, object):
         return self._phase[color]
 
     # Todo: Not considering battery attackers that are pinned?
-    def get_pinned_attackers_and_defenders(self, piece):
-        defend_color = self.color_at(piece)
+    def get_pinned_attackers_and_defenders(self, piece, defend_color=None):
+        if defend_color is None:
+            defend_color = self.color_at(piece)
         pinned_attackers = []
         all_attackers = self.attackers(not defend_color, piece)
         all_defenders = self.attackers(defend_color, piece)
@@ -75,8 +76,10 @@ class Board(chess.Board, object):
 
     # Get first attackers - the pieces of color that can move to square first
     # Batteries not included, kings currently included
-    def get_first_attackers_and_defenders(self, square: chess.Square) -> (List[chess.Square], List[chess.Square]):
-        defend_color = self.color_at(square)
+    def get_first_attackers_and_defenders(self, square: chess.Square, defend_color: chess.Color=None) \
+        -> (List[chess.Square], List[chess.Square]):
+        if defend_color is None:
+            defend_color = self.color_at(square)
         attackers = [attacker for attacker in self.attackers(not defend_color, square) if chess_util.can_piece_capture(self, attacker, square)]
         defenders = [attacker for attacker in self.attackers(defend_color, square) if chess_util.can_piece_capture(self, attacker, square)]
         return attackers, defenders
@@ -84,12 +87,14 @@ class Board(chess.Board, object):
     # Get second attackers and defenders - the attackers and defenders who can't move to square first
     # i.e. pieces that may be in a battery or are pinned
     # Technically, pinned pieces could be first attackers or defenders
-    def get_second_attackers_and_defenders(self, square, first_attackers, first_defenders):
-        defend_color = self.color_at(square)
-        second_attackers = chess_util.get_battery_attackers(self, square, not defend_color, first_attackers)
-        second_defenders = chess_util.get_battery_attackers(self, square, defend_color, first_defenders)
+    def get_second_attackers_and_defenders(self, square, first_attackers, first_defenders, 
+                                           defend_color: chess.Color=None):
+        if defend_color is None:
+            defend_color = self.color_at(square)
+        second_attackers = self.get_battery_attackers(square, not defend_color, first_attackers)
+        second_defenders = self.get_battery_attackers(square, defend_color, first_defenders)
 
-        pinned_attackers, pinned_defenders = self.get_pinned_attackers_and_defenders(square)
+        pinned_attackers, pinned_defenders = self.get_pinned_attackers_and_defenders(square, defend_color)
         second_attackers += pinned_attackers
         second_defenders += pinned_defenders
 
@@ -99,14 +104,18 @@ class Board(chess.Board, object):
         second_defenders += self.get_battery_attackers(square, defend_color, pinned_defenders)
         return second_attackers, second_defenders
 
-    def get_attackers_and_defenders(self, piece: chess.Square) -> \
+    def get_attackers_and_defenders(self, piece: chess.Square, piece_color: chess.Color=None) -> \
         (List[chess.Square], List[chess.Square], List[chess.Square], List[chess.Square]):
         if piece not in self._squares_to_attackers_and_defenders:
-            first_attackers, first_defenders = self.get_first_attackers_and_defenders(piece)
+            if piece_color is None:
+                piece_color = self.color_at(piece)
+            first_attackers, first_defenders = self.get_first_attackers_and_defenders(piece, piece_color)
             # Sort to know which are the least valued attackers and defenders
             first_attackers.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[self.piece_type_at(piece)])
             first_defenders.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[self.piece_type_at(piece)])
-            second_attackers, second_defenders = chess_util.get_second_attackers_and_defenders(self, piece, first_attackers, first_defenders)
-            self._squares_to_attackers_and_defenders[piece] = first_attackers, second_attackers, first_defenders, second_defenders
+            second_attackers, second_defenders = self.get_second_attackers_and_defenders(
+                piece, first_attackers, first_defenders, piece_color)
+            self._squares_to_attackers_and_defenders[piece] = \
+                first_attackers, second_attackers, first_defenders, second_defenders
         return self._squares_to_attackers_and_defenders[piece]
 

@@ -74,6 +74,16 @@ class TestChessUtil(unittest.TestCase):
 		self.assertFalse(chess_util.is_open_file(board, chess.D1))
 		self.assertTrue(chess_util.is_open_file(board, chess.E1))
 
+	def test_get_prior_pawn_square(self):
+		pawn = chess.G5
+		pawn_color = chess.BLACK
+		prior_pawn_square = chess.G6
+		self.assertEqual(chess_util.get_prior_pawn_square(pawn, pawn_color), prior_pawn_square)
+
+		pawn_color = chess.WHITE
+		prior_pawn_square = chess.G4
+		self.assertEqual(chess_util.get_prior_pawn_square(pawn, pawn_color), prior_pawn_square)
+
 	def test_get_adjusted_rank(self):
 		square = chess.A1
 		color = chess.WHITE
@@ -252,23 +262,35 @@ class TestChessUtil(unittest.TestCase):
 			(second_attackers, second_defenders))
 
 	def test_is_free_to_take(self):
+		# Pawn can be taken with en passant
+		board = Board("8/pR6/1p2k2p/6pP/6P1/2P5/r4PK1/8 w - g6 0 40")
+		pawn = chess.G5
+		attacked_square = chess.G6
+		self.assertTrue(chess_util.is_free_to_take(board, pawn, attacked_square))
+
+	def test_is_free_to_take_this_turn(self):
 		board = Board("rnbqk1nr/pppp1ppp/4p3/7Q/3P4/b1P1P3/PP3PPP/RNB1KBNR w KQkq - 3 5")
 		free_bishop = chess.A3
-		self.assertTrue(chess_util.is_free_to_take(board, free_bishop))
+		self.assertTrue(chess_util.is_free_to_take_this_turn(board, free_bishop))
 		defended_pawn = chess.F7
-		self.assertFalse(chess_util.is_free_to_take(board, defended_pawn))
+		self.assertFalse(chess_util.is_free_to_take_this_turn(board, defended_pawn))
 
 		board = Board("rn2kb1r/pp2pppp/2p1b3/q7/3P4/2N5/PPP2PPP/R1BQK1NR b KQkq - 2 8")
 		defended_pawn = chess.A2
-		self.assertFalse(chess_util.is_free_to_take(board, defended_pawn))
+		self.assertFalse(chess_util.is_free_to_take_this_turn(board, defended_pawn))
 
 		board = Board("2k5/5p2/4p3/8/5N2/1B6/8/2K5 w - - 0 1")
 		defended_pawn = chess.E6
-		self.assertFalse(chess_util.is_free_to_take(board, defended_pawn))
+		self.assertFalse(chess_util.is_free_to_take_this_turn(board, defended_pawn))
 
 		board = Board("1r2r1k1/p4pbp/q2p1np1/1ppPp3/1nP1P3/1QN2PPB/P6P/2BRK2R w K - 0 24")
 		defended_pawn = chess.B5
-		self.assertTrue(chess_util.is_free_to_take(board, defended_pawn))
+		self.assertTrue(chess_util.is_free_to_take_this_turn(board, defended_pawn))
+
+		# Pawn can be taken with en passant
+		board = Board("8/pR6/1p2k2p/6pP/6P1/2P5/r4PK1/8 w - g6 0 40")
+		pawn = chess.G5
+		self.assertTrue(chess_util.is_free_to_take_this_turn(board, pawn))
 
 	def test_get_most_valuable_free_to_take(self):
 		board = Board("1Q2rrk1/p1p2ppp/5n2/3p4/3P4/1P3B1K/PB6/RN2Q3 b - - 0 21")

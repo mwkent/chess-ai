@@ -1,5 +1,6 @@
 # Handles chess related utility functions
 import chess
+from board import Board
 
 # Todo: Fix free to take - For instance pawn defended by pawn can't be taken by queen and rook
 # Also pieces can defend/attack through opponent's pieces
@@ -111,6 +112,12 @@ def add_file(square, num_files):
 
 def add_rank_and_file(square, num_ranks, num_files):
 	return add_file(add_rank(square, num_ranks), num_files)
+
+
+def get_prior_pawn_square(pawn: chess.Square, pawn_color: chess.Color) -> chess.Square:
+	rank_modifier = 1 if pawn_color == chess.BLACK else -1
+	return add_rank(pawn, rank_modifier)
+
 
 # Returns squares 1 king distance away from square
 def get_adjacent_squares(square):
@@ -233,12 +240,13 @@ def get_first_attackers_and_defenders(board, square):
 # Get second attackers and defenders - the attackers and defenders who can't move to square first
 # i.e. pieces that may be in a battery or are pinned
 # Technically, pinned pieces could be first attackers or defenders
-def get_second_attackers_and_defenders(board, square, first_attackers, first_defenders):
-	defend_color = board.color_at(square)
+def get_second_attackers_and_defenders(board, square, first_attackers, first_defenders, defend_color=None):
+	if defend_color is None:
+		defend_color = board.color_at(square)
 	second_attackers = get_battery_attackers(board, square, not defend_color, first_attackers)
 	second_defenders = get_battery_attackers(board, square, defend_color, first_defenders)
 
-	pinned_attackers, pinned_defenders = get_pinned_attackers_and_defenders(board, square)
+	pinned_attackers, pinned_defenders = get_pinned_attackers_and_defenders(board, square, defend_color)
 	second_attackers += pinned_attackers
 	second_defenders += pinned_defenders
 
@@ -264,8 +272,9 @@ def get_pinner(board, pinned_piece):
 	return None
 
 # Todo: Not considering battery attackers that are pinned?
-def get_pinned_attackers_and_defenders(board, piece):
-	defend_color = board.color_at(piece)
+def get_pinned_attackers_and_defenders(board, piece, defend_color=None):
+	if defend_color is None:
+		defend_color = board.color_at(piece)
 	pinned_attackers = []
 	all_attackers = board.attackers(not defend_color, piece)
 	all_defenders = board.attackers(defend_color, piece)
@@ -311,13 +320,18 @@ def get_attackers_and_defenders(board, piece):
 	second_attackers, second_defenders = get_second_attackers_and_defenders(board, piece, first_attackers, first_defenders)
 	return first_attackers, second_attackers, first_defenders, second_defenders
 
-# Can you take piece and win material
-def is_free_to_take(board, piece):
-	color = board.color_at(piece)
-	# e.g. if it's white's turn, a white piece cannot be free to take
-	if board.turn == color:
-		return False
-	first_attackers, second_attackers, first_defenders, second_defenders = board.get_attackers_and_defenders(piece)
+def is_free_to_take(board: Board, piece: chess.Square, attacked_square: chess.Square=None) -> bool:
+	"""Checks to see if `piece` can be taken.
+
+	`attacked_square` is needed to check for en passant.
+	`attacked_square` would be the square where the en passant capture would take place,
+	and `piece` would be the pawn being captured by en passant.
+	"""
+
+	if attacked_square is None:
+		attacked_square = piece
+	first_attackers, second_attackers, first_defenders, second_defenders = \
+		board.get_attackers_and_defenders(attacked_square, board.color_at(piece))
 	num_attackers = len(first_attackers) + len(second_attackers)
 	num_defenders = len(first_defenders) + len(second_defenders)
 	if len(first_attackers) >= 2:
@@ -341,6 +355,20 @@ def is_free_to_take(board, piece):
 			PIECE_TYPES_TO_VALUES[board.piece_type_at(piece)] + PIECE_TYPES_TO_VALUES[board.piece_type_at(min_value_defender)]:
 			return True
 	return False
+
+
+# Can you take piece and win material
+def is_free_to_take_this_turn(board, piece):
+	color = board.color_at(piece)
+	# e.g. if it's white's turn, a white piece cannot be free to take
+	if board.turn == color:
+		return False
+	en_passant_free_to_take = False
+	if board.piece_type_at(piece) == chess.PAWN and board.ep_square is not None \
+		and board.ep_square == get_prior_pawn_square(piece, board.color_at(piece)):
+		en_passant_free_to_take = is_free_to_take(board, piece, board.ep_square)
+	return is_free_to_take(board, piece) or en_passant_free_to_take
+
 
 # Are there more attackers than defenders?
 # Todo: Delete - does not consider value of piece being attacked and defender
@@ -372,7 +400,7 @@ def get_most_valuable_free_to_take(board):
 	for piece_type in MOST_VALUABLE_TO_LEAST_PIECE_TYPES:
 		pieces = board.pieces(piece_type, not board.turn)
 		for piece in pieces:
-			if is_free_to_take(board, piece):
+			if is_free_to_take_this_turn(board, piece):
 				return piece
 	return None
 

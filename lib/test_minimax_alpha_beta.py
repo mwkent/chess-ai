@@ -103,6 +103,11 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("b5c4"))		
 
+	def test_losing_pawn_to_en_passant(self):
+		board = Board("8/pR4p1/1p2k2p/7P/6P1/2P5/r4PK1/8 b - - 7 39")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("e6f6"))
+
 
 if __name__ == '__main__':
 	unittest.main()
