@@ -3,13 +3,14 @@
 
 from board import Board
 from multiprocessing import Queue
+from distutils.util import strtobool
 import sys
 import threading
 import time
 import traceback
 import move_calculator
 import think_time_calculator
-from log import set_l, l
+from log import l
 
 ponder = False
 
@@ -50,9 +51,16 @@ def uci():
 def is_ready():
 	send('readyok')
 
-# Todo: Implement
-def set_option():
-	pass
+# Todo: Update with other setoption possibilities
+def set_option(parts, board):
+	if len(parts) >= 5:
+		name = parts[2]
+		if name == "UCI_Chess960":
+			value = parts[4]
+			board.chess960 = strtobool(value)
+	else:
+		raise ValueError("setoption should have at least 5 space separated parts, such as 'setoption name UCI_Chess960 value true': " + parts)
+
 
 def uci_new_game():
 	# Nothing is required, at this point, to start a new UCI game
@@ -196,7 +204,7 @@ def main():
 				is_ready()
 
 			elif parts[0] == 'setoption':
-				set_option()
+				set_option(parts, board)
 
 			elif parts[0] == 'ucinewgame':
 				uci_new_game()
@@ -226,9 +234,3 @@ def main():
 		send(ex)
 		l(str(ex))
 		l(traceback.format_exc())
-
-
-if len(sys.argv) == 2:
-	set_l(sys.argv[1])
-
-main()

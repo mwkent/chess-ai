@@ -46,6 +46,16 @@ class TestBoard(unittest.TestCase):
 		self.assertEqual(board.get_attackers_and_defenders(defended_pawn), \
 			(first_attackers, second_attackers, first_defenders, second_defenders))
 
+	def test_chess_960_castling(self):
+		board = Board("rk6/pppb2rp/4p3/3pNp2/7R/1PP3P1/PKBP3P/R7 b q - 5 18", True)
+		board.chess960 = True
+		queenside_castle = chess.Move.from_uci("b8a8")
+		self.assertTrue(queenside_castle in list(board.legal_moves))
+
+		board = Board("rk6/pppb2rp/4p3/3pNp2/7R/1PP3P1/PKBP3P/R7 b q - 5 18", False)
+		board.chess960 = True
+		self.assertTrue(queenside_castle in list(board.legal_moves))
+
 
 if __name__ == '__main__':
 	unittest.main()
