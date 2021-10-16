@@ -2,7 +2,8 @@ import chess
 import chess_util
 from typing import List
 
-PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
+PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, 
+                         chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
 NON_PAWN_PIECE_TYPES = [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
 
 
@@ -24,6 +25,9 @@ class Board(chess.Board, object):
         self._phase.clear()
         self._squares_to_attackers_and_defenders.clear()
         return super().pop()
+    
+    def get_all_pieces(self) -> List[chess.Square]:
+        return [square for square in chess.SQUARES if self.piece_type_at(square) is not None]
 
     def get_phase(self, color):
         if color not in self._phase:
@@ -60,6 +64,7 @@ class Board(chess.Board, object):
 
     # Gets attackers of square that are part of a battery of attackers (param)
     def get_battery_attackers(self, square, color, attackers):
+        # Todo: Consider batteries through other player's pieces
         battery_attackers = []
         for attacker in attackers:
             if self.piece_type_at(attacker) in [chess.PAWN, chess.BISHOP, chess.ROOK, chess.QUEEN]:
