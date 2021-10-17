@@ -224,12 +224,12 @@ class TestPositionEvaluator(unittest.TestCase):
 		# Queen pinned by bishop
 		board = Board("5k2/8/8/6p1/5b2/8/3Q4/2K5 w - - 0 1")
 		turn = chess.WHITE
-		self.assertTrue(position_evaluator.get_queen_value(board, turn) < 400)
+		self.assertTrue(position_evaluator.get_queens_value(board, turn) < 400)
 
 		# Queen pinned by rook
 		board = Board("5k2/3p4/2r5/8/8/8/2Q5/2K5 w - - 0 1")
 		turn = chess.WHITE
-		self.assertTrue(position_evaluator.get_queen_value(board, turn) < 600)
+		self.assertTrue(position_evaluator.get_queens_value(board, turn) < 600)
 
 	def test_is_piece_on_bishop_color(self):
 		board = Board("kb6/2b5/8/8/8/1BB5/P7/K7 w - - 0 1")
@@ -450,7 +450,7 @@ class TestPositionEvaluator(unittest.TestCase):
 	def test_get_queen_free_to_trade(self):
 		board = Board("6k1/5ppp/1p6/2pp4/1r2n3/4PNqP/2Q2PB1/4R1K1 w - - 0 41")
 		turn = chess.BLACK
-		self.assertEqual(position_evaluator.get_queen_value(board, turn, None, chess.G3, position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN]), \
+		self.assertEqual(position_evaluator.get_queens_value(board, turn, None, chess.G3, position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN]), \
 			position_evaluator.FREE_TO_TRADE_MODIFIER * position_evaluator.PIECE_TYPES_TO_VALUES[chess.PAWN])
 
 	def test_activate_king(self):

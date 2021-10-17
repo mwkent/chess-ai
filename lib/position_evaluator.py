@@ -2,7 +2,9 @@ import chess
 from collections import defaultdict
 import chess_util
 import endgame
+from board import Board
 from typing import List
+from pickle import NONE
 
 # Todo: Knight strength with pawns; knights are stronger in closed positions
 # Todo: Avoid exchanges when down material/exchange when up material
@@ -454,37 +456,44 @@ def get_blockaded_pawn_penalty(board, pawn):
         return BLOCKADED_PAWN_PENALTY
     return 0
 
-# What makes a pawn stronger or weaker
 
+def get_pawn_value(board, turn, pawn, free_to_take=None):
+    evaluation = 0
+    pawns = board.pieces(chess.PAWN, turn)
+    if pawn == free_to_take:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.PAWN] * \
+            FREE_TO_TAKE_MODIFIER_PENALTY
+    else:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.PAWN]
+        if pawn in CENTER:
+            evaluation += PAWN_IN_CENTER_EVAL
+        if is_passed_pawn(board, pawn):
+            evaluation += get_eval(board, turn, PASSED_PAWN_EVAL)
+            evaluation += get_pawn_promoting_bonus(board, pawn, turn)
+            evaluation += get_eval(board, turn, PAWN_RANK_BONUS) * \
+                get_adjusted_pawn_rank(pawn, turn) * 2
+            evaluation += get_defended_bonus(board, pawn) * 2
+            evaluation += get_blockaded_pawn_penalty(board, pawn) * 2
+            evaluation += get_rook_behind_pawn_bonus(board, pawn)
+            evaluation += get_promotion_support_bonus(board, pawn)
+        else:
+            evaluation += get_defended_bonus(board, pawn)
+            evaluation += get_blockaded_pawn_penalty(board, pawn)
+            evaluation += get_eval(board, turn, PAWN_RANK_BONUS) * \
+                get_adjusted_pawn_rank(pawn, turn)
+        evaluation += get_center_pawn_eval(pawn)
+        evaluation += get_isolated_pawn_penalty(pawns, pawn)
+        evaluation += get_pressure_penalty(board, pawn)
+    return evaluation
+    
 
-def get_pawn_value(board, turn, free_to_take):
+def get_pawns_value(board, turn, free_to_take):
+    """What makes a pawn stronger or weaker?
+    """
     evaluation = 0
     pawns = board.pieces(chess.PAWN, turn)
     for pawn in pawns:
-        if pawn == free_to_take:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.PAWN] * \
-                FREE_TO_TAKE_MODIFIER_PENALTY
-        else:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.PAWN]
-            if pawn in CENTER:
-                evaluation += PAWN_IN_CENTER_EVAL
-            if is_passed_pawn(board, pawn):
-                evaluation += get_eval(board, turn, PASSED_PAWN_EVAL)
-                evaluation += get_pawn_promoting_bonus(board, pawn, turn)
-                evaluation += get_eval(board, turn, PAWN_RANK_BONUS) * \
-                    get_adjusted_pawn_rank(pawn, turn) * 2
-                evaluation += get_defended_bonus(board, pawn) * 2
-                evaluation += get_blockaded_pawn_penalty(board, pawn) * 2
-                evaluation += get_rook_behind_pawn_bonus(board, pawn)
-                evaluation += get_promotion_support_bonus(board, pawn)
-            else:
-                evaluation += get_defended_bonus(board, pawn)
-                evaluation += get_blockaded_pawn_penalty(board, pawn)
-                evaluation += get_eval(board, turn, PAWN_RANK_BONUS) * \
-                    get_adjusted_pawn_rank(pawn, turn)
-            evaluation += get_center_pawn_eval(pawn)
-            evaluation += get_isolated_pawn_penalty(pawns, pawn)
-            evaluation += get_pressure_penalty(board, pawn)
+        evaluation += get_pawn_value(board, turn, pawn, free_to_take)
     return evaluation
 
 # Returns bonus if piece is not on first rank still
@@ -567,32 +576,39 @@ def get_knight_controlled_penalty(board, knight):
     return knight_controlled_penalty
 
 
-# What makes a knight stronger or weaker
-def get_knight_value(board, turn, free_to_take, free_to_trade, free_to_trade_value):
+def get_knight_value(board, turn, knight, free_to_take=None, free_to_trade=None, free_to_trade_value=None):
+    evaluation = 0
+    if knight == free_to_take:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.KNIGHT] * \
+            FREE_TO_TAKE_MODIFIER_PENALTY
+    elif knight == free_to_trade:
+        evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
+    else:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.KNIGHT]
+        if not board.is_pinned(turn, knight):
+            evaluation += len(board.attacks(knight)) * ATTACK_VALUE
+            evaluation += get_eval(board, turn,
+                                   get_attacking_bonus(board, turn, knight))
+        # I don't think this is needed anymore with attacking_bonus
+        #value += get_eval(board, turn, get_knight_rank_eval(knight, turn))
+        evaluation += get_defended_bonus(board, knight)
+        evaluation += get_eval(board, turn,
+                               get_developed_eval(knight, turn))
+        evaluation += get_eval(board, turn,
+                               get_kick_knight_penalty(board, knight))
+        knight_fork_value = get_knight_fork_value(board, knight)
+        evaluation += FREE_TO_TRADE_MODIFIER * knight_fork_value
+        evaluation += get_pressure_penalty(board, knight)
+    return evaluation
+
+
+def get_knights_value(board, turn, free_to_take, free_to_trade, free_to_trade_value):
+    """What makes a knight stronger or weaker?
+    """
     evaluation = 0
     knights = board.pieces(chess.KNIGHT, turn)
     for knight in knights:
-        if knight == free_to_take:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.KNIGHT] * \
-                FREE_TO_TAKE_MODIFIER_PENALTY
-        elif knight == free_to_trade:
-            evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
-        else:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.KNIGHT]
-            if not board.is_pinned(turn, knight):
-                evaluation += len(board.attacks(knight)) * ATTACK_VALUE
-                evaluation += get_eval(board, turn,
-                                       get_attacking_bonus(board, turn, knight))
-            # I don't think this is needed anymore with attacking_bonus
-            #value += get_eval(board, turn, get_knight_rank_eval(knight, turn))
-            evaluation += get_defended_bonus(board, knight)
-            evaluation += get_eval(board, turn,
-                                   get_developed_eval(knight, turn))
-            evaluation += get_eval(board, turn,
-                                   get_kick_knight_penalty(board, knight))
-            knight_fork_value = get_knight_fork_value(board, knight)
-            evaluation += FREE_TO_TRADE_MODIFIER * knight_fork_value
-            evaluation += get_pressure_penalty(board, knight)
+        evaluation += get_knight_value(board, turn, knight, free_to_take, free_to_trade, free_to_trade_value)
     return evaluation
 
 # If the opponent has bishops on only one color complex, is piece on the same color?
@@ -641,30 +657,39 @@ def get_undeveloped_bishop_blocked_penalty(board, bishop):
     return 0
 
 
-# What makes a bishop stronger or weaker
-def get_bishop_value(board, turn, free_to_take, free_to_trade, free_to_trade_value):
+def get_bishop_value(board, turn, bishop, free_to_take=None, free_to_trade=None, free_to_trade_value=None):
+    """What makes a bishop stronger or weaker?
+    """
+    evaluation = 0
+    if bishop == free_to_take:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP] * \
+            FREE_TO_TAKE_MODIFIER_PENALTY
+    elif bishop == free_to_trade:
+        evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
+    else:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP]
+        if not chess_util.is_bishop_pinned(board, bishop, turn):
+            evaluation += len(board.attacks(bishop)) * ATTACK_VALUE
+            evaluation += get_eval(board, turn,
+                                   get_attacking_bonus(board, turn, bishop))
+            evaluation += get_eval(board, turn,
+                                   get_long_diagonal_bonus(bishop))
+        evaluation += get_defended_bonus(board, bishop)
+        evaluation += get_bishop_battery_bonus(board, bishop, turn)
+        evaluation += get_eval(board, turn,
+                               get_developed_eval(bishop, turn))
+        evaluation += get_undeveloped_bishop_blocked_penalty(board, bishop)
+        evaluation += get_pressure_penalty(board, bishop)
+    return evaluation
+
+
+def get_bishops_value(board, turn, free_to_take, free_to_trade, free_to_trade_value):
+    """What makes a bishop stronger or weaker?
+    """
     evaluation = 0
     bishops = board.pieces(chess.BISHOP, turn)
     for bishop in bishops:
-        if bishop == free_to_take:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP] * \
-                FREE_TO_TAKE_MODIFIER_PENALTY
-        elif bishop == free_to_trade:
-            evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
-        else:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP]
-            if not chess_util.is_bishop_pinned(board, bishop, turn):
-                evaluation += len(board.attacks(bishop)) * ATTACK_VALUE
-                evaluation += get_eval(board, turn,
-                                       get_attacking_bonus(board, turn, bishop))
-                evaluation += get_eval(board, turn,
-                                       get_long_diagonal_bonus(bishop))
-            evaluation += get_defended_bonus(board, bishop)
-            evaluation += get_bishop_battery_bonus(board, bishop, turn)
-            evaluation += get_eval(board, turn,
-                                   get_developed_eval(bishop, turn))
-            evaluation += get_undeveloped_bishop_blocked_penalty(board, bishop)
-            evaluation += get_pressure_penalty(board, bishop)
+        evaluation += get_bishop_value(board, turn, bishop, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_bishop_pair_value(bishops)
     return evaluation
 
@@ -709,39 +734,48 @@ def get_rook_aligned_with_bishop_penalty(board, rook):
     return 0
 
 
-# What makes a rook stronger or weaker
-def get_rook_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+def get_rook_value(board, turn, rook, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+    """What makes a rook stronger or weaker
+    """
+    evaluation = 0
+    if rook == free_to_take:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.ROOK] * \
+            FREE_TO_TAKE_MODIFIER_PENALTY
+    elif rook == free_to_trade:
+        evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
+    elif chess_util.is_rook_pinned(board, rook, turn) and board.piece_type_at(chess_util.get_pinner(board, rook)) == chess.BISHOP:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP] * \
+            FREE_TO_TRADE_MODIFIER
+    else:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.ROOK]
+        if not chess_util.is_rook_pinned(board, rook, turn):
+            evaluation += len(board.attacks(rook)) * ATTACK_VALUE
+            evaluation += get_eval(board, turn,
+                                   get_attacking_bonus(board, turn, rook, ROOK_SQUARES_TO_ATTACKING_BONUS, ROOK_RANKS_TO_ATTACKING_BONUS))
+        evaluation += get_defended_bonus(board, rook)
+        evaluation += get_eval(board, turn,
+                               get_rook_on_open_file_bonus(board, rook))
+        evaluation += get_piece_on_bishop_color_penalty(board, rook)
+        evaluation += get_rook_too_aggressive_penalty(board, rook)
+        evaluation += get_pressure_penalty(board, rook)
+        evaluation += get_rook_aligned_with_bishop_penalty(board, rook)
+    return evaluation
+
+
+def get_rooks_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+    """What makes a rook stronger or weaker
+    """
     evaluation = 0
     rooks = board.pieces(chess.ROOK, turn)
     for rook in rooks:
-        if rook == free_to_take:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.ROOK] * \
-                FREE_TO_TAKE_MODIFIER_PENALTY
-        elif rook == free_to_trade:
-            evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
-        elif chess_util.is_rook_pinned(board, rook, turn) and board.piece_type_at(chess_util.get_pinner(board, rook)) == chess.BISHOP:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.BISHOP] * \
-                FREE_TO_TRADE_MODIFIER
-        else:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.ROOK]
-            if not chess_util.is_rook_pinned(board, rook, turn):
-                evaluation += len(board.attacks(rook)) * ATTACK_VALUE
-                evaluation += get_eval(board, turn,
-                                       get_attacking_bonus(board, turn, rook, ROOK_SQUARES_TO_ATTACKING_BONUS, ROOK_RANKS_TO_ATTACKING_BONUS))
-            evaluation += get_defended_bonus(board, rook)
-            evaluation += get_eval(board, turn,
-                                   get_rook_on_open_file_bonus(board, rook))
-            evaluation += get_piece_on_bishop_color_penalty(board, rook)
-            evaluation += get_rook_too_aggressive_penalty(board, rook)
-            evaluation += get_pressure_penalty(board, rook)
-            evaluation += get_rook_aligned_with_bishop_penalty(board, rook)
+        evaluation += get_rook_value(board, turn, rook, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_connected_rooks_value(board, rooks)
     return evaluation
 
 
-# Is the queen aligned with the opponent's bishop or rook and is there one piece in between
-
 def get_queen_aligned_with_piece_type_value(board, queen_color, queen, square, piece_type):
+    """Is the queen aligned with the opponent's bishop or rook and is there one piece in between
+    """
     value = 0
     if board.piece_type_at(square) == piece_type and board.color_at(square) != queen_color:
         num_pieces_in_between = 0
@@ -763,26 +797,35 @@ def get_queen_aligned_value(board, color):
     return value
 
 
-# What makes a queen stronger or weaker
-def get_queen_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+def get_queen_value(board, turn, queen, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+    """What makes a queen stronger or weaker?
+    """
+    evaluation = 0
+    if queen == free_to_take:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN] * \
+            FREE_TO_TAKE_MODIFIER_PENALTY
+    elif queen == free_to_trade:
+        evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
+    elif board.is_pinned(turn, queen) and board.piece_type_at(chess_util.get_pinner(board, queen)) in [chess.BISHOP, chess.ROOK]:
+        pinner_piece_type = board.piece_type_at(
+            chess_util.get_pinner(board, queen))
+        evaluation += PIECE_TYPES_TO_VALUES[pinner_piece_type] * \
+            FREE_TO_TRADE_MODIFIER
+    else:
+        evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN]
+        if not board.is_pinned(turn, queen):
+            evaluation += len(board.attacks(queen)) * QUEEN_ATTACK_VALUE
+        evaluation += get_defended_bonus(board, queen)
+    return evaluation
+
+
+def get_queens_value(board, turn, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+    """What makes a queen stronger or weaker?
+    """
     evaluation = 0
     queens = board.pieces(chess.QUEEN, turn)
     for queen in queens:
-        if queen == free_to_take:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN] * \
-                FREE_TO_TAKE_MODIFIER_PENALTY
-        elif queen == free_to_trade:
-            evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
-        elif board.is_pinned(turn, queen) and board.piece_type_at(chess_util.get_pinner(board, queen)) in [chess.BISHOP, chess.ROOK]:
-            pinner_piece_type = board.piece_type_at(
-                chess_util.get_pinner(board, queen))
-            evaluation += PIECE_TYPES_TO_VALUES[pinner_piece_type] * \
-                FREE_TO_TRADE_MODIFIER
-        else:
-            evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN]
-            if not board.is_pinned(turn, queen):
-                evaluation += len(board.attacks(queen)) * QUEEN_ATTACK_VALUE
-            evaluation += get_defended_bonus(board, queen)
+        evaluation += get_queen_value(board, turn, queen, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_queen_aligned_value(board, turn)
     return evaluation
 
@@ -844,8 +887,9 @@ def get_open_diagonals_to_king_penalty(board, king_color):
     return penalty
 
 
-def get_king_value(board, color, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
-    king = board.king(color)
+def get_king_value(board, color, king=None, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+    if king is None:
+        king = board.king(color)
     evaluation = 0
     # Todo: Testing this out
     if is_endgame(board, color):
@@ -983,10 +1027,10 @@ def get_defended_bonus(board, piece):
     return 0
 
 
-def get_evaluation_for_both_sides(get_evaluation, board, turn, *args):
+def get_evaluation_for_both_sides(get_evaluation, board, turn, *args, **kwargs):
     # print(get_evaluation.__name__)
     evaluation = get_evaluation(board, turn, *args) - \
-        get_evaluation(board, not turn, *args)
+        get_evaluation(board, not turn, *args, **kwargs)
     # print(evaluation)
     return evaluation
 
@@ -1082,11 +1126,10 @@ def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
     return 0
 
 
-# Returns centipawn (pawn worth 100 points) evaluation
-# A positive number is good for turn while negative is bad
-# If quiet search is being used then check_tactics will not be needed since the search will continue until tactics are removed from the position
-# extend can be used to extend the search one level deeper in potential tactical positions
-def evaluate_position(board, turn, check_tactics=True, extend=True):
+def get_game_over_eval(board: Board, turn: bool) -> int:
+    """If the game is over, return the evaluation.
+    Otherwise, return None.
+    """
     if board.is_checkmate():
         if board.turn == turn:
             return MIN_EVAL
@@ -1095,6 +1138,37 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
     # Is can_claim_threefold_repetition() affecting performance?
     if chess_util.is_draw(board):
         return DRAW_EVAL
+    return None
+
+
+def get_repetition_eval(board: Board, turn: bool, evaluation: int) -> int:
+    """Considers if one player can claim a draw or there has been a repetition.
+    A repetition will divide the evaluation in half to either encourage or discourage
+    repetitions as appropriate.
+    """
+    result = evaluation
+    if board.can_claim_draw():
+        if turn == board.turn:
+            # turn can decide to go for the draw or not
+            result = max(evaluation, DRAW_EVAL)
+        else:
+            # Not turn will decide to go for a draw if evaluation is good for turn
+            result = min(evaluation, DRAW_EVAL)
+    # Avoid repetitions if you are in a better position; favor repetitions if you are in a worse position
+    if board.is_repetition(count=2):
+        result = evaluation / 2
+    return result
+
+
+# Returns centipawn (pawn worth 100 points) evaluation
+# A positive number is good for turn while negative is bad
+# If quiet search is being used then check_tactics will not be needed since the search will continue until tactics are removed from the position
+# extend can be used to extend the search one level deeper in potential tactical positions
+def evaluate_position(board, turn, check_tactics=False, extend=False):
+    game_over_eval = get_game_over_eval(board, turn)
+    if game_over_eval is not None:
+        return game_over_eval
+
     if extend:
         forced_mate_evaluation = search_getting_mated(board, turn)
         if forced_mate_evaluation != 0:
@@ -1105,51 +1179,59 @@ def evaluate_position(board, turn, check_tactics=True, extend=True):
             return extend_checks(board, turn, check_tactics, extend)
     if endgame.is_endgame(board):
         return endgame.evaluate_position(board, turn)
-
-    free_to_take = chess_util.get_most_valuable_free_to_take(board)
-    free_to_trade, free_to_trade_value = chess_util.get_most_valuable_free_to_trade(
-        board)
-    if free_to_take is not None and free_to_trade is not None:
-        # Todo: Free to take value is not necessarily the value of the first piece being taken
-        free_to_take_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(
-            free_to_take)]
-        free_to_trade_value_won = PIECE_TYPES_TO_VALUES[board.piece_type_at(
-            free_to_trade)] - free_to_trade_value
-        # More value in taking free_to_take
-        if free_to_take_value > free_to_trade_value_won:
-            free_to_trade, free_to_trade_value = None, 0
-        # More value in taking free_to_trade
-        else:
-            free_to_take = None
+    
+    free_to_take = free_to_trade = None
+    free_to_trade_value = 0
+    if check_tactics:
+        free_to_take = chess_util.get_most_valuable_free_to_take(board)
+        free_to_trade, free_to_trade_value = chess_util.get_most_valuable_free_to_trade(
+            board)
+        if free_to_take is not None and free_to_trade is not None:
+            # Todo: Free to take value is not necessarily the value of the first piece being taken
+            free_to_take_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(
+                free_to_take)]
+            free_to_trade_value_won = PIECE_TYPES_TO_VALUES[board.piece_type_at(
+                free_to_trade)] - free_to_trade_value
+            # More value in taking free_to_take
+            if free_to_take_value > free_to_trade_value_won:
+                free_to_trade, free_to_trade_value = None, 0
+            # More value in taking free_to_trade
+            else:
+                free_to_take = None
 
     evaluation = 0
     evaluation += get_evaluation_for_both_sides(
-        get_pawn_value, board, turn, free_to_take)
+        get_pawns_value, board, turn, free_to_take)
     evaluation += get_evaluation_for_both_sides(
-        get_knight_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
+        get_knights_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_evaluation_for_both_sides(
-        get_bishop_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
+        get_bishops_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_evaluation_for_both_sides(
-        get_rook_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
+        get_rooks_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_evaluation_for_both_sides(
-        get_queen_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
+        get_queens_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
     evaluation += get_evaluation_for_both_sides(
-        get_king_value, board, turn, free_to_take, free_to_trade, free_to_trade_value)
+        get_king_value, board, turn, free_to_take=free_to_take, free_to_trade=free_to_trade,
+        free_to_trade_value=free_to_trade_value)
     evaluation += get_evaluation_for_both_sides(
         attacking_stronger_pieces, board, turn, free_to_take, free_to_trade, free_to_trade_value)
     # print(board)
     #print("evaluation = ", evaluation)
-    if board.can_claim_draw():
-        if turn == board.turn:
-            # turn can decide to go for the draw or not
-            evaluation = max(evaluation, DRAW_EVAL)
-        else:
-            # Not turn will decide to go for a draw if evaluation is good for turn
-            evaluation = min(evaluation, DRAW_EVAL)
-    # Avoid repetitions if you are in a better position; favor repetitions if you are in a worse position
-    if board.is_repetition(count=2):
-        evaluation /= 2
+
+    evaluation = get_repetition_eval(board, turn, evaluation)
     return evaluation
+
+
+def evaluate_piece(board: chess.Board, turn: bool, piece: chess.Square) -> int:
+    """Evaluates a specific piece on the board.
+    """
+    piece_types_to_evaluators = {chess.PAWN: get_pawn_value,
+                                 chess.KNIGHT: get_knight_value,
+                                 chess.BISHOP: get_bishop_value,
+                                 chess.ROOK: get_rook_value,
+                                 chess.QUEEN: get_queen_value,
+                                 chess.KING: get_king_value}
+    return piece_types_to_evaluators[board.piece_type_at(piece)](board, turn, piece)
 
 
 def get_victim_value(board, move):
@@ -1161,7 +1243,8 @@ def get_victim_value(board, move):
 
 
 # Gets simpler evaluation based on old evaluation
-def evaluate_position_after_capture(board, turn, old_evaluation):
+# Used in quiet search
+def evaluate_position_after_capture_negamax(board, turn, old_evaluation):
     if board.is_checkmate():
         if board.turn == turn:
             return MIN_EVAL
@@ -1171,10 +1254,32 @@ def evaluate_position_after_capture(board, turn, old_evaluation):
     if chess_util.is_draw(board):
         return DRAW_EVAL
 
-    if not board.move_stack or not old_evaluation:
+    if not board.move_stack or old_evaluation is None:
         return evaluate_position(board, turn)
 
     move = board.pop()
     victim_value = get_victim_value(board, move)
     board.push(move)
     return -old_evaluation - victim_value
+
+# Gets simpler evaluation based on old evaluation
+def evaluate_position_after_capture(board, turn, old_evaluation):
+    if not board.move_stack or old_evaluation is None:
+        return evaluate_position(board, turn, check_tactics=False, extend=False)
+
+    if board.is_checkmate():
+        if board.turn == turn:
+            return MIN_EVAL
+        else:
+            return MAX_EVAL
+
+    if chess_util.is_draw(board):
+        return DRAW_EVAL
+
+    move = board.pop()
+    victim_value = get_victim_value(board, move)
+    board.push(move)
+    # If it's not turn after capturing, the evaluation increases since turn just took a piece
+    # Otherwise decreases
+    victim_modifier = 1 if board.turn != turn else -1
+    return old_evaluation + (victim_value * victim_modifier)
