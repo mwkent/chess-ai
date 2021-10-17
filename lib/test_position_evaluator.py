@@ -55,7 +55,7 @@ class TestPositionEvaluator(unittest.TestCase):
 	def test_rook_pinned_by_bihsop(self):
 		board = Board("5k2/8/8/8/5b2/8/3R4/2K5 w - - 0 1")
 		turn = chess.WHITE
-		self.assertTrue(position_evaluator.get_rook_value(board, turn) < 400)
+		self.assertTrue(position_evaluator.get_rooks_value(board, turn) < 400)
 
 	def test_is_isolated_pawn(self):
 		pawns = chess.SquareSet([chess.A2, chess.B2, chess.D3, chess.H4])
@@ -477,10 +477,11 @@ class TestPositionEvaluator(unittest.TestCase):
 	def test_repetition_brings_eval_closer_to_zero(self):
 		board = Board("rnbqk1nr/p1p5/4ppp1/1p5Q/1bpP4/2N1P3/PP3PPP/R1B1KB1R w KQkq - 0 9")
 		turn = chess.WHITE
-		evaluation = position_evaluator.evaluate_position(board, turn)
+		init_evaluation = position_evaluator.evaluate_position(board, turn)
 		for move in ["h5g5", "g8h6", "g5h5", "h6g8"]:
 			board.push_uci(move)
-		self.assertEqual(position_evaluator.evaluate_position(board, turn, check_tactics=True, extend=False), evaluation / 2)
+		evaluation = position_evaluator.evaluate_position(board, turn)
+		self.assertEqual(evaluation, init_evaluation / 2)
 
 	def test_search_getting_mated(self):
 		board = Board("5rk1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 b - - 6 30")
@@ -506,7 +507,7 @@ class TestPositionEvaluator(unittest.TestCase):
 		# Mate in 2
 		board = Board("3r2k1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 w - - 7 31")
 		turn = chess.BLACK
-		self.assertEqual(position_evaluator.evaluate_position(board, turn), position_evaluator.MIN_EVAL + 2)
+		self.assertEqual(position_evaluator.evaluate_position(board, turn, extend=True), position_evaluator.MIN_EVAL + 2)
 
 	def test(self):
 		turn = chess.BLACK
