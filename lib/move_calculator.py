@@ -37,7 +37,9 @@ def calculate(board, max_think_time, max_depth=20, is_ponder=False):
         result = [cur_result[0], cur_result[1], d, elapsed_time]
 
         # An estimate on how many times longer it takes to calculate 1 depth deeper than the last
-        additional_depth_factor = 10.0
+        # additional_depth_factor = 10.0
+        additional_depth_factor = 50.0
+        # additional_depth_factor = 100.0
         if is_mating(result[0]) or (max_think_time and elapsed_time > max_think_time / additional_depth_factor):
             ponder_move = result
             break
