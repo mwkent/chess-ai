@@ -1,6 +1,6 @@
 # Handles chess related utility functions
 from __future__ import annotations
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Set, Dict
 import chess
 if TYPE_CHECKING:
 	from board import Board
@@ -15,6 +15,8 @@ MOST_VALUABLE_TO_LEAST_PIECE_TYPES = [chess.QUEEN, chess.ROOK, chess.BISHOP, che
 MINOR_PIECES = [chess.KNIGHT, chess.BISHOP]
 MAJOR_PIECES = [chess.ROOK, chess.QUEEN]
 PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
+PIECE_TYPES_TO_ROUGH_VALUES = {chess.PAWN: 100, chess.KNIGHT: 300, chess.BISHOP: 300,
+							chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
 
 # Returns True if the piece is on a light square
 # piece must be a Square
@@ -184,6 +186,14 @@ def is_rook_pinned(board, rook, color):
 			return True
 	return False
 
+def can_piece_be_captured_by_weaker_piece(board, piece):
+	color = not board.color_at(piece)
+	return any(attacker for attacker in board.attackers(color, piece)
+			if can_piece_capture(board, attacker, piece) and
+			PIECE_TYPES_TO_ROUGH_VALUES[board.piece_type_at(attacker)] < \
+			PIECE_TYPES_TO_ROUGH_VALUES[board.piece_type_at(piece)])
+
+
 # Can the piece be taken by an enemy piece
 def can_piece_be_captured(board, piece):
 	color = not board.color_at(piece)
@@ -330,6 +340,7 @@ def is_free_to_take(board: Board, piece: chess.Square, attacked_square: chess.Sq
 	`attacked_square` would be the square where the en passant capture would take place,
 	and `piece` would be the pawn being captured by en passant.
 	"""
+	# Todo: Check for other pins besides pins to king
 
 	if attacked_square is None:
 		attacked_square = piece
@@ -359,6 +370,32 @@ def is_free_to_take(board: Board, piece: chess.Square, attacked_square: chess.Sq
 			return True
 	return False
 
+
+def get_all_free_to_take(board: Board) -> Dict[chess.Color, chess.SquareSet]:
+	"""Returns all pieces of each color that can be taken
+	"""
+	result = {}
+	for color in [chess.WHITE, chess.BLACK]:
+		result[color] = chess.SquareSet()
+		for piece_type in MOST_VALUABLE_TO_LEAST_PIECE_TYPES:
+			for piece in board.pieces(piece_type, color):
+				if is_free_to_take(board, piece):
+					result[color].add(piece)
+	return result
+
+
+def get_all_attack_higher_value(board: Board) -> Dict[chess.Color, chess.SquareSet]:
+	"""Gets all pieces that are attacked by something of less value
+	"""
+	result = {}
+	for color in [chess.WHITE, chess.BLACK]:
+		result[color] = chess.SquareSet()
+		for piece_type in MOST_VALUABLE_TO_LEAST_PIECE_TYPES:
+			for piece in board.pieces(piece_type, color):
+				if can_piece_be_captured_by_weaker_piece(board, piece):
+					result[color].add(piece)
+	return result
+	
 
 # Can you take piece and win material
 def is_free_to_take_this_turn(board, piece):
