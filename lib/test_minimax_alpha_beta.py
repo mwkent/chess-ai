@@ -26,7 +26,7 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci('d4c3'))
 
-	def test_knight_blunder2(self):
+	def test_knight_blunder(self):
 		board = Board("r3r1k1/2p2p1p/1pn1q1p1/3pp2n/8/2P1PPPP/pRQP2BK/B4R2 b - - 1 27")
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertNotEqual(move, chess.Move.from_uci("h5g3"))
@@ -70,7 +70,8 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 	# Threat to fork king and undefended knight with queen
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQkq - 1 15")
-		move = minimax_alpha_beta.pick_move(board, 2)
+		# Note: Changed from 2 to 1 with quiescence search
+		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertIn(move, [chess.Move.from_uci("b7c5"), chess.Move.from_uci("c2c3"), chess.Move.from_uci("c1d2")])
 
 	def test_free_bishop(self):
@@ -87,6 +88,11 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board = Board("r1bq1rk1/pp2bppp/2npp3/3BP3/3P4/1Q3N2/PP3PPP/RNB2RK1 b - - 0 10")
 		move = minimax_alpha_beta.pick_move(board, 2)
 		self.assertIn(move, [chess.Move.from_uci("e6d5"), chess.Move.from_uci("c6a5")])
+
+	def test_mate_in_1(self):
+		board = Board("8/8/8/p1p5/P7/2k5/6q1/1K6 b - - 3 93")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("g2b2"))
 
 	def test_mate_in_2(self):
 		board = Board("r1n2n1k/pp4b1/2p3QN/2Pp4/1P1P2P1/P3r2q/1B6/R4RK1 w - - 2 28")
@@ -107,6 +113,22 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board = Board("8/pR4p1/1p2k2p/7P/6P1/2P5/r4PK1/8 b - - 7 39")
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("e6f6"))
+		
+	def test_queen_pinned_to_mate(self):
+		board = Board("2rq3r/pp3kpp/5n2/2bpQ3/8/5B2/PPP2PPP/RN2R1K1 b - - 4 15")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("h8e8"))
+
+	def test_free_bishop2(self):
+		board = Board("r1b1k1r1/pp1n1p1p/2pqp3/3p4/3PnB2/3B1NPP/PPP2P2/R2QR1K1 b q - 2 14")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("d6f4"))
+		
+	def test_free_pawn2(self):
+		# Bishop is attacking a defended knight and a free pawn
+		board = Board("r2r2k1/2p1qp1p/1pn2np1/p1b1p3/8/PP1PN2P/1BPQNPP1/3R2KR b - - 4 20")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("c5a3"))
 
 
 if __name__ == '__main__':
