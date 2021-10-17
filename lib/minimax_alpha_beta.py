@@ -13,6 +13,7 @@ import quiet_search as qs
 import datetime
 import time
 from transposition_table2 import tt_init, tt_lookup_helper, tt_store
+import search_extension
 
 # Mate in 2 is worse than mate in 1
 MATE_DEPTH_PENALTY = 1
@@ -45,10 +46,12 @@ def minimax_helper(board, depth, use_tt=False, sort_moves=False, evaluate_positi
 	print("move time = ", end-start)
 	return (result[0], result[1][0])
 
-# Returns (evaluation, move list)
-# alpha is the min possible value
-# beta is the max possible value
+
 def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt=False, sort_moves=False, depth_reached=0):
+	"""Returns (evaluation, move list)
+	alpha is the min possible value
+	beta is the max possible value
+	"""
 	global node_count, prune_count, tt_hit_count, quiet_node_count
 	node_count += 1
 	if depth == 0 or chess_util.is_game_over(board):
@@ -57,11 +60,12 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 			score, quiet_node_count = qs.quiet_search_helper(board, turn)
 			evaluation = (score, board.peek())
 		else:
-			evaluation = (evaluate_position(board, turn), [])
+			evaluation = search_extension.search(board, turn)
+			#evaluation = (evaluate_position(board, turn), [])
 		#print("depth = ", depth)
 		#print("leaf evaluation = ", evaluation)
 		#print("is game over =", board.is_game_over(claim_draw=True))
-		#print("is repitition =", board.is_repetition())
+		#print("is repetition =", board.is_repetition())
 		#print(board)
 		#print(board.move_stack)
 		return evaluation
