@@ -54,11 +54,11 @@ def extend_checks(board, turn, check_tactics, extend):
 def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
     if board.is_checkmate():
         if board.turn == turn:
-            return MIN_EVAL + num_checks_made
+            return MIN_EVAL + num_checks_made, []
         else:
-            return MAX_EVAL - num_checks_made
+            return MAX_EVAL - num_checks_made, []
     if num_checks_left == 0:
-        return 0
+        return 0, []
     # Search all possible moves when in check
     if board.is_check():
         evaluation = None
@@ -68,26 +68,26 @@ def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
                 board, turn, num_checks_left, num_checks_made)
             board.pop()
             # At least one line does not lead to forced mate
-            if search_evaluation == 0:
+            if search_evaluation[0] == 0:
                 return search_evaluation
             if evaluation is None:
                 evaluation = search_evaluation
             # A check was intercepted with another check leading to forced mate
-            elif evaluation != search_evaluation:
-                return 0
-        return evaluation
+            elif evaluation[0] != search_evaluation[0]:
+                return 0, []
+        return evaluation[0], [move] + evaluation[1]
     else:
         # Search checks
         for move in board.legal_moves:
-            evaluation = 0
+            evaluation = 0, []
             board.push(move)
             if board.is_check():
                 evaluation = search_getting_mated(
                     board, turn, num_checks_left-1, num_checks_made+1)
             board.pop()
-            if evaluation != 0:
-                return evaluation
-    return 0
+            if evaluation[0] != 0:
+                return evaluation[0], [move] + evaluation[1]
+    return 0, []
 
 
 def is_pawn_promotion_search_move(board: Board, move: chess.Move) -> bool:
@@ -254,7 +254,7 @@ def minimax(board: Board, turn: chess.Color, maximizing: bool, move: chess.Move,
 
     # Make move and evaluate
     board.push(move)
-    evaluation = search(board, turn, old_evaluation,
+    evaluation = search_helper(board, turn, old_evaluation,
                         move_position_evaluator,
                         start_evaluation, max_loss,
                         num_checks_remaining, num_pawn_promotion_remaining,
@@ -269,7 +269,7 @@ def minimax(board: Board, turn: chess.Color, maximizing: bool, move: chess.Move,
 
 
 # Todo: Try ordering moves, mvv, lva - this did not help performance
-def search(board: Board, turn: chess.Color, old_evaluation: float=None,
+def search_helper(board: Board, turn: chess.Color, old_evaluation: float=None,
            move_position_evaluator: MovePositionEvaluator=None,
            start_evaluation: int=None, max_loss: int=100,
            num_checks_remaining: int=1,
@@ -292,7 +292,7 @@ def search(board: Board, turn: chess.Color, old_evaluation: float=None,
         (turn == board.turn and start_evaluation - min_or_max_eval[0] <= max_loss * -1):
         return min_or_max_eval
     
-    # Don't end search when either player is in check
+    # Don't end search_helper when either player is in check
     if num_checks_remaining == 0 and num_pawn_promotion_remaining == 0 and \
         num_captures_remaining == 0 and num_attacks_and_defends_remaining == 0 and \
         not board.is_check() or board.is_checkmate() or board.is_stalemate() or board.is_insufficient_material():
@@ -352,3 +352,21 @@ def search(board: Board, turn: chess.Color, old_evaluation: float=None,
                                           num_captures_remaining, num_attacks_and_defends_remaining-1)
 
     return min_or_max_eval
+
+
+def search(board: Board, turn: chess.Color, old_evaluation: float=None,
+           move_position_evaluator: MovePositionEvaluator=None,
+           start_evaluation: int=None, max_loss: int=100,
+           num_checks_remaining: int=1,
+           num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
+           num_attacks_and_defends_remaining: int=0):
+    """Returns the evaluation and the list of best moves that were calculated
+    """
+    for num_checks in range(1, 2):
+        forced_mate_evaluation = search_getting_mated(board, turn, num_checks_left=num_checks)
+        if forced_mate_evaluation[0] != 0:
+            return forced_mate_evaluation
+    return search_helper(board, turn, old_evaluation, move_position_evaluator,
+                  start_evaluation, max_loss,
+                  num_checks_remaining, num_pawn_promotion_remaining,
+                  num_captures_remaining, num_attacks_and_defends_remaining)

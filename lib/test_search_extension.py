@@ -2,7 +2,8 @@ import unittest
 import chess
 from board import Board
 from typing import List
-from search_extension import get_potential_tactics_moves, search
+from search_extension import get_potential_tactics_moves, search_helper, search_getting_mated
+import search_extension
 
 
 class TestSearchExtension(unittest.TestCase):
@@ -60,24 +61,24 @@ class TestSearchExtension(unittest.TestCase):
 	def test_search_trap_queen(self):
 		board = Board("r4rk1/ppp2ppp/1b1p2b1/8/3nN1Pq/3B3P/PPPB1P2/R2K1Q1R w - - 8 17")
 		moves = ["d2g5", "g6e4", "g5h4"]
-		print(search(board, chess.WHITE))
+		print(search_helper(board, chess.WHITE))
 
 	def test_search_free_bishop(self):
 		board = Board("r1b1k1r1/pp1n1p1p/2pqp3/3p4/3PnB2/3B1NPP/PPP2P2/R2QR1K1 b q - 2 14")
 		move = chess.Move.from_uci("d6f4")
-		result = search(board, chess.BLACK)
+		result = search_helper(board, chess.BLACK)
 		self.assertEqual(result[1][0], move)
 
 	def test_winning_queen(self):
 		board = Board("r4rk1/pp2bppp/4b3/2p5/2q1NR2/P3P3/1BQP2PP/5RK1 w - - 0 21")
-		result = search(board, chess.WHITE)
+		result = search_helper(board, chess.WHITE)
 		move = result[1][0]
 		self.assertEqual(move, chess.Move.from_uci("e4f6"))
 
 	def test_capture_free_knight(self):
 		board = Board("2qr2k1/1pp2p2/2n3p1/4p3/p2p4/3P2N1/2NBPnB1/1Q4KR w - - 0 67")
 		turn = chess.BLACK
-		result = search(board, turn,
+		result = search_helper(board, turn,
 							num_checks_remaining=1, num_pawn_promotion_remaining=1, num_captures_remaining=2)
 		self.assertEqual([chess.Move.from_uci("g1f2")], result[1])
 
@@ -85,10 +86,23 @@ class TestSearchExtension(unittest.TestCase):
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2PnB2/5N2/1PP1PPPP/R2QKB1R b KQkq - 2 15")
 		turn = chess.WHITE
-		result = search(board, turn,
+		result = search_helper(board, turn,
 							num_checks_remaining=1, num_pawn_promotion_remaining=1, num_captures_remaining=8)
 		self.assertEqual(chess.Move.from_uci("e7b4"), result[1][0])
+		
+	def test_mate_in_1(self):
+		board = Board("8/8/8/p1p5/P7/2k5/6q1/1K6 b - - 3 93")
+		turn = chess.BLACK
+		_, moves = search_getting_mated(board, turn, num_checks_left=1)
+		self.assertEqual(moves, [chess.Move.from_uci("g2b2")])
 
+	def test_mate_in_1_after_opponent_move(self):
+		"""Opponent has three moves. All lead to mate in 1.
+		"""
+		board = Board("8/1q6/8/p1p5/P7/2k5/8/1K6 w - - 4 94")
+		turn = chess.BLACK
+		evaluation = search_getting_mated(board, turn, num_checks_left=1)
+		self.assertEqual(evaluation[0], search_extension.MAX_EVAL - 1)
 
 if __name__ == '__main__':
 	unittest.main()
