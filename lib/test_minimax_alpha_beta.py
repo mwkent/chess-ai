@@ -62,12 +62,15 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board = Board("r3r1k1/2p2p1p/1pn1q1p1/3pp2n/8/2P1PPPP/pRQP2BK/B4R2 b - - 1 27")
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertNotEqual(move, chess.Move.from_uci("h5g3"))
+		
+	def test_knight_blunder2(self):
+		board = Board("r1b3n1/4k1b1/p1n1p2p/1p1p2p1/3P4/2N1BR2/PPP2PP1/1K1R1B2 w - - 0 20")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertNotEqual(move, chess.Move.from_uci("c3d5"))
 
 	def test_pinned_defender(self):
 		board = Board("b6k/4rnq1/p2ppN1p/3P4/1P3P1Q/2P3P1/7P/R3R2K w - - 0 48")
 		move = minimax_alpha_beta.pick_move(board, 1)
-		self.assertNotEqual(move, chess.Move.from_uci("e1e6"))
-		move = minimax_alpha_beta.pick_move(board, 2)
 		self.assertNotEqual(move, chess.Move.from_uci("e1e6"))
 
 	# Sacs bishop for pawn, knight is defending but pinned
@@ -107,7 +110,7 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 
 	def test_recapture_bishop(self):
 		board = Board("r1bq1rk1/pp2bppp/2npp3/3BP3/3P4/1Q3N2/PP3PPP/RNB2RK1 b - - 0 10")
-		move = minimax_alpha_beta.pick_move(board, 2)
+		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertIn(move, [chess.Move.from_uci("e6d5"), chess.Move.from_uci("c6a5")])
 
 	def test_counterattack(self):
