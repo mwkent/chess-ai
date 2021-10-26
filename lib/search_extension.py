@@ -290,7 +290,10 @@ def search_helper(board: Board, turn: chess.Color, old_evaluation: float=None,
         start_evaluation = min_or_max_eval[0]
     if (turn != board.turn and start_evaluation - min_or_max_eval[0] >= max_loss) or \
         (turn == board.turn and start_evaluation - min_or_max_eval[0] <= max_loss * -1):
-        return min_or_max_eval
+        # return min_or_max_eval
+        num_checks_remaining, num_pawn_promotion_remaining,
+        num_attacks_and_defends_remaining = 0
+        num_captures_remaining = min(1, num_captures_remaining)
     
     # Don't end search_helper when either player is in check
     if num_checks_remaining == 0 and num_pawn_promotion_remaining == 0 and \
@@ -359,10 +362,11 @@ def search(board: Board, turn: chess.Color, old_evaluation: float=None,
            start_evaluation: int=None, max_loss: int=100,
            num_checks_remaining: int=1,
            num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
-           num_attacks_and_defends_remaining: int=0):
+           num_attacks_and_defends_remaining: int=0,
+           forced_mate_depth: int=2):
     """Returns the evaluation and the list of best moves that were calculated
     """
-    for num_checks in range(1, 2):
+    for num_checks in range(1, forced_mate_depth):
         forced_mate_evaluation = search_getting_mated(board, turn, num_checks_left=num_checks)
         if forced_mate_evaluation[0] != 0:
             return forced_mate_evaluation

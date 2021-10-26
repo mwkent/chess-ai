@@ -28,12 +28,17 @@ tt_hit_count = 0
 # Returns (evaluation, move)
 # This is a wrapper around minimax to cover anything required before the search starts
 # Don't need to pass in alpha and beta like in minimax
-def minimax_helper(board, depth, use_tt=False, sort_moves=False, evaluate_position=position_evaluator.evaluate_position, use_quiet_search=False):
+def minimax_helper(board, depth, forced_mate_depth: int=2,
+				num_captures: int=8, use_tt=False, sort_moves=False,
+				evaluate_position=position_evaluator.evaluate_position, use_quiet_search=False):
 	start = datetime.datetime.now()
 	turn = board.turn
 	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
-		evaluate_position, use_quiet_search, use_tt, sort_moves)
+		evaluate_position, use_quiet_search, use_tt, sort_moves,
+		forced_mate_depth=forced_mate_depth, num_captures=num_captures)
 	print("depth =", depth)
+	print("capture depth =", num_captures)
+	print("forced mate depth =", forced_mate_depth)
 	print("result = ", result)
 	global prune_count, quiet_node_count, node_count, tt_hit_count
 	print("prune_count = ", prune_count)
@@ -47,7 +52,8 @@ def minimax_helper(board, depth, use_tt=False, sort_moves=False, evaluate_positi
 	return (result[0], result[1][0])
 
 
-def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt=False, sort_moves=False, depth_reached=0):
+def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt=False, sort_moves=False, depth_reached=0,
+		forced_mate_depth: int=2, num_captures: int=8):
 	"""Returns (evaluation, move list)
 	alpha is the min possible value
 	beta is the max possible value
@@ -60,7 +66,9 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 			score, quiet_node_count = qs.quiet_search_helper(board, turn)
 			evaluation = (score, board.peek())
 		else:
-			evaluation = search_extension.search(board, turn)
+			evaluation = search_extension.search(board, turn,
+												forced_mate_depth=forced_mate_depth,
+												num_captures_remaining=num_captures)
 			#evaluation = (evaluate_position(board, turn), [])
 		#print("depth = ", depth)
 		#print("leaf evaluation = ", evaluation)
@@ -82,7 +90,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 		max_evaluation = None
 		for move in moves:
 			board.push(move)
-			evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt, sort_moves)
+			evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt, sort_moves,
+								num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 			board.pop()
 			if max_evaluation == None or evaluation[0] > max_evaluation[0]: # greater than so max_evaluation only gets replaced if evaluation is higher
 			# that way max_evaluation will only be updated with a fully evaluated node
@@ -102,7 +111,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 	min_evaluation = None
 	for move in moves:
 		board.push(move)
-		evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt, sort_moves)
+		evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt, sort_moves,
+							num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 		board.pop()
 		if min_evaluation == None or evaluation[0] < min_evaluation[0]:
 			min_evaluation = (evaluation[0], [move] + evaluation[1])
@@ -304,9 +314,10 @@ def init_counts():
 	tt_hit_count = 0
 
 # Minimax with alpha beta pruning to some depth
-def pick_full_move(board, depth=3):
+def pick_full_move(board, depth=3, forced_mate_depth=2, num_captures=8):
 	init_counts()
-	result = minimax_helper(board, depth)
+	result = minimax_helper(board, depth, forced_mate_depth=forced_mate_depth,
+						num_captures=num_captures)
 	return result
 
 # Minimax with alpha beta pruning to some depth
