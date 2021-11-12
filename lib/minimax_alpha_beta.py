@@ -1,15 +1,11 @@
 # Todo: Value quicker mates
 # Todo: Consider extensions. Extend depth on certain positions (e.g., checks, hanging pieces)
-# Todo: Add checks to quiet_search
 # Todo: Check late move reduction
 # Todo: Negamax? Is it any faster than minimax?
 # Todo: Rewrite some code in c++; c++ 100x faster?
-# Todo: Update quiet_search to check for draws by repition as well. Need some way to stop draw by repetition at depth of only 1
-# Todo: Move quiet_search to own file
 import chess
 import chess_util
 import position_evaluator
-import quiet_search as qs
 import datetime
 import time
 from transposition_table2 import tt_init, tt_lookup_helper, tt_store
@@ -20,7 +16,6 @@ MATE_DEPTH_PENALTY = 1
 PIECE_TYPES_TO_VALUES = position_evaluator.PIECE_TYPES_TO_VALUES.copy()
 PIECE_TYPES_TO_VALUES[chess.KING] = 0
 
-quiet_node_count = 0
 node_count = 0
 prune_count = 0
 tt_hit_count = 0
@@ -30,21 +25,19 @@ tt_hit_count = 0
 # Don't need to pass in alpha and beta like in minimax
 def minimax_helper(board, depth, forced_mate_depth: int=2,
 				num_captures: int=8, use_tt=False, sort_moves=False,
-				evaluate_position=position_evaluator.evaluate_position, use_quiet_search=False):
+				evaluate_position=position_evaluator.evaluate_position):
 	start = datetime.datetime.now()
 	turn = board.turn
 	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
-		evaluate_position, use_quiet_search, use_tt, sort_moves,
+		evaluate_position, use_tt, sort_moves,
 		forced_mate_depth=forced_mate_depth, num_captures=num_captures)
 	print("depth =", depth)
 	print("capture depth =", num_captures)
 	print("forced mate depth =", forced_mate_depth)
 	print("result = ", result)
-	global prune_count, quiet_node_count, node_count, tt_hit_count
+	global prune_count, node_count, tt_hit_count
 	print("prune_count = ", prune_count)
 	print("node_count = ", node_count)
-	if use_quiet_search:
-		print("quiet_node_count = ", quiet_node_count)
 	if use_tt:
 		print("tt_hit_count = ", tt_hit_count)
 	end = datetime.datetime.now()
@@ -52,24 +45,20 @@ def minimax_helper(board, depth, forced_mate_depth: int=2,
 	return (result[0], result[1][0])
 
 
-def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt=False, sort_moves=False, depth_reached=0,
+def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, sort_moves=False, depth_reached=0,
 		forced_mate_depth: int=2, num_captures: int=8):
 	"""Returns (evaluation, move list)
 	alpha is the min possible value
 	beta is the max possible value
 	"""
-	global node_count, prune_count, tt_hit_count, quiet_node_count
+	global node_count, prune_count, tt_hit_count
 	node_count += 1
 	if depth == 0 or chess_util.is_game_over(board):
 		evaluation = 0
-		if use_quiet_search:
-			score, quiet_node_count = qs.quiet_search_helper(board, turn)
-			evaluation = (score, board.peek())
-		else:
-			evaluation = search_extension.search(board, turn,
-												forced_mate_depth=forced_mate_depth,
-												num_captures_remaining=num_captures)
-			#evaluation = (evaluate_position(board, turn), [])
+		evaluation = search_extension.search(board, turn,
+											forced_mate_depth=forced_mate_depth,
+											num_captures_remaining=num_captures)
+		#evaluation = (evaluate_position(board, turn), [])
 		#print("depth = ", depth)
 		#print("leaf evaluation = ", evaluation)
 		#print("is game over =", board.is_game_over(claim_draw=True))
@@ -90,7 +79,7 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 		max_evaluation = None
 		for move in moves:
 			board.push(move)
-			evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt, sort_moves,
+			evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_tt, sort_moves,
 								num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 			board.pop()
 			if max_evaluation == None or evaluation[0] > max_evaluation[0]: # greater than so max_evaluation only gets replaced if evaluation is higher
@@ -111,7 +100,7 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 	min_evaluation = None
 	for move in moves:
 		board.push(move)
-		evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_quiet_search, use_tt, sort_moves,
+		evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_tt, sort_moves,
 							num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 		board.pop()
 		if min_evaluation == None or evaluation[0] < min_evaluation[0]:
@@ -129,160 +118,15 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_quiet_search
 
 # Todo: Test and use this
 # Handles mate in 1 is better than mate in 2
-def get_evaluation(board, turn, evaluate_position, use_quiet_search, depth_reached):
-	evaluation = 0
-	if use_quiet_search:
-		score, quiet_depth_reached = qs.quiet_search_helper(board, turn)
-		score = get_mate_depth_adjusted_eval(score, depth_reached + quiet_depth_reached)
-		evaluation = (score, board.peek())
-	else:
-		score = evaluate_position(board, turn)
-		score = get_mate_depth_adjusted_eval(score, depth_reached)
-		evaluation = (score, board.peek())
+def get_evaluation(board, turn, evaluate_position, depth_reached):
+	score = evaluate_position(board, turn)
+	score = get_mate_depth_adjusted_eval(score, depth_reached)
+	evaluation = (score, board.peek())
 	return evaluation
 
 def get_mate_depth_adjusted_eval(score, depth_reached):
 	return score - depth_reached * MATE_DEPTH_PENALTY if score == position_evaluator.MAX_EVAL else score
 
-
-# Returns evaluation based on turn; positive if good for turn, negative if not good for turn
-def quiet_search_helper2(board, turn, evaluate_position=position_evaluator.evaluate_position, sort_moves=True):
-	score, _ = quiet_search2(board)
-	return score if turn == board.turn else -score
-
-# Returns evaluation after checking all possible captures
-# Quiescence Search
-# alpha is the min possible value
-# beta is the max possible value
-# num_checks is the number of checks to search
-# Returns (evaluation, depth_reached) where evaluation is based on board.turn
-# Todo: Evaluate position in a simpler fashion
-def quiet_search2(board, alpha=position_evaluator.MIN_EVAL, beta=position_evaluator.MAX_EVAL, \
-	evaluate_position=position_evaluator.evaluate_position, sort_moves=True, num_checks=1, depth=10, depth_reached=0):
-	global quiet_node_count
-	quiet_node_count += 1
-	if depth == 0 or chess_util.is_game_over(board):
-		evaluation = evaluate_position(board, board.turn)
-		if evaluation >= beta:
-			return beta, -1
-		if evaluation > alpha:
-			alpha = evaluation
-		return alpha, depth_reached
-	if board.is_check():
-		moves = board.legal_moves
-		if sort_moves:
-			moves = sorted(moves, reverse = True, key = lambda move: get_mvv_lva_value(board, move))
-		for move in moves:
-			board.push(move)
-			evaluation, sub_depth_reached = quiet_search2(board, -beta, -alpha, evaluate_position, num_checks=num_checks, depth=depth-1)
-			evaluation = -evaluation
-			board.pop()
-
-			if evaluation >= beta:
-				return beta, -1
-			if evaluation > alpha:
-				alpha = evaluation
-		return alpha, sub_depth_reached
-
-	evaluation = evaluate_position(board, board.turn)
-#	print()
-#	print(board.move_stack)
-#	print(board)
-#	print("alpha =", alpha)
-#	print("beta =", beta)
-#	print("evaluation =", evaluation)
-	if evaluation >= beta:
-		return beta, -1
-	if evaluation > alpha:
-		alpha = evaluation
-	moves = [move for move in board.legal_moves if board.is_capture(move) or (num_checks > 0 and board.gives_check(move))]
-	if not moves:
-		return alpha, depth_reached
-	if sort_moves:
-		moves = sorted(moves, reverse = True, key = lambda move: get_mvv_lva_value(board, move))
-	for move in moves:
-		num_remaining_checks = num_checks
-		if not board.is_capture(move) and board.gives_check(move):
-			num_remaining_checks = num_checks - 1
-		board.push(move)
-		evaluation, sub_depth_reached = quiet_search2(board, -beta, -alpha, evaluate_position, num_checks=num_remaining_checks, depth=depth-1)
-		evaluation = -evaluation
-		board.pop()
-
-		if evaluation >= beta:
-			return beta, -1
-		if evaluation > alpha:
-			alpha = evaluation
-	return alpha, sub_depth_reached
-
-def quiet_search_helper(board, turn, evaluate_position=position_evaluator.evaluate_position, sort_moves=True):
-	score, _ = quiet_search(board)
-	return score if turn == board.turn else -score
-
-# Uses simpler position evaluation
-def quiet_search(board, old_evaluation=None, alpha=position_evaluator.MIN_EVAL, beta=position_evaluator.MAX_EVAL, \
-	evaluate_position=position_evaluator.evaluate_position_after_capture, sort_moves=True, num_checks=1, depth=6, depth_reached=0):
-	global quiet_node_count
-	quiet_node_count += 1
-	evaluation = evaluate_position(board, board.turn, old_evaluation)
-
-	#print()
-	#print(board.move_stack)
-	#print(board)
-	#print("depth =", depth)
-	#print("alpha =", alpha)
-	#print("beta =", beta)
-	#print("old evaluation =", old_evaluation)
-	#print("evaluation =", evaluation)
-
-	if depth == 0 or chess_util.is_game_over(board):
-		if evaluation >= beta:
-			return beta, -1
-		if evaluation > alpha:
-			alpha = evaluation
-		return alpha, depth_reached
-
-#	print("before is check")
-	# Consider all legal moves when in check
-	if board.is_check():
-		moves = board.legal_moves
-		if sort_moves:
-			moves = sorted(moves, reverse = True, key = lambda move: get_mvv_lva_value(board, move))
-		for move in moves:
-			board.push(move)
-			sub_evaluation, sub_depth_reached = quiet_search(board, evaluation, -beta, -alpha, evaluate_position, num_checks=num_checks, depth=depth-1)
-			sub_evaluation = -sub_evaluation
-			board.pop()
-
-			if sub_evaluation >= beta:
-				return beta, -1
-			if sub_evaluation > alpha:
-				alpha = sub_evaluation
-		return alpha, sub_depth_reached
-
-	if evaluation >= beta:
-		return beta, -1
-	if evaluation > alpha:
-		alpha = evaluation
-	moves = [move for move in board.legal_moves if board.is_capture(move) or (num_checks > 0 and board.gives_check(move))]
-	if not moves:
-		return alpha, depth_reached
-	if sort_moves:
-		moves = sorted(moves, reverse = True, key = lambda move: get_mvv_lva_value(board, move))
-	for move in moves:
-		num_remaining_checks = num_checks
-		if not board.is_capture(move) and board.gives_check(move):
-			num_remaining_checks = num_checks - 1
-		board.push(move)
-		sub_evaluation, sub_depth_reached = quiet_search(board, evaluation, -beta, -alpha, evaluate_position, num_checks=num_remaining_checks, depth=depth-1)
-		sub_evaluation = -sub_evaluation
-		board.pop()
-
-		if sub_evaluation >= beta:
-			return beta, -1
-		if sub_evaluation > alpha:
-			alpha = sub_evaluation
-	return alpha, sub_depth_reached
 
 def get_move_value(board, turn, move, evaluate_position):
 	board.push(move)
@@ -307,8 +151,7 @@ def get_mvv_lva_value(board, move):
 	return value
 
 def init_counts():
-	global quiet_node_count, node_count, prune_count, tt_hit_count
-	quiet_node_count = 0
+	global node_count, prune_count, tt_hit_count
 	node_count = 0
 	prune_count = 0
 	tt_hit_count = 0
