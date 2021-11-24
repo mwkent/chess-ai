@@ -6,7 +6,7 @@ from board import Board
 import position_evaluator
 
 def get_move(board, time=.5):
-		return move_calculator.calculate(board, time)[1]
+		return move_calculator.calculate_with_thread(board, time)[1]
 
 class TestMoveCalculator(unittest.TestCase):
 
@@ -27,12 +27,12 @@ class TestMoveCalculator(unittest.TestCase):
 
 	def test_free_knight(self):
 		board = Board("r1bqkb1r/ppp1pppp/5P2/8/3p4/2N5/PPP1PPPP/R1BQKB1R b KQkq - 0 6")
-		move = get_move(board)
+		move = get_move(board, 4)
 		self.assertEqual(move, chess.Move.from_uci('d4c3'))
 
 	def test_knight_blunder2(self):
 		board = Board("r3r1k1/2p2p1p/1pn1q1p1/3pp2n/8/2P1PPPP/pRQP2BK/B4R2 b - - 1 27")
-		move = get_move(board)
+		move = get_move(board, time=2)
 		self.assertNotEqual(move, chess.Move.from_uci("h5g3"))
 
 	# rook and pawn
@@ -44,6 +44,7 @@ class TestMoveCalculator(unittest.TestCase):
 			board.push(move)
 			num_moves += 1
 		print("num_moves to mate with rook =", num_moves)
+		print(board)
 		self.assertTrue(board.is_checkmate())
 
 	def test_pinned_defender(self):
@@ -72,7 +73,7 @@ class TestMoveCalculator(unittest.TestCase):
 	# Threat to fork king and undefended knight with queen
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQkq - 1 15")
-		move = get_move(board)
+		move = get_move(board, time=7)
 		self.assertIn(move, [chess.Move.from_uci("b7c5"), chess.Move.from_uci("c2c3"), chess.Move.from_uci("c1d2")])
 
 	def test_free_bishop(self):
@@ -92,7 +93,7 @@ class TestMoveCalculator(unittest.TestCase):
 
 	def test_mate_in_2(self):
 		board = Board("r1n2n1k/pp4b1/2p3QN/2Pp4/1P1P2P1/P3r2q/1B6/R4RK1 w - - 2 28")
-		move = get_move(board)
+		move = get_move(board, time=2)
 		self.assertEqual(move, chess.Move.from_uci("f1f8"))
 
 	def test_counterattack(self):
@@ -102,7 +103,7 @@ class TestMoveCalculator(unittest.TestCase):
 
 	def test_pin_queen_to_king(self):
 		board = Board("1r4r1/1pp2p1p/2nbkp2/pB1q4/P2Pp3/1P2P1P1/3NQP1P/1RR3K1 w - - 1 19")
-		move = get_move(board)
+		move = get_move(board, time=2)
 		self.assertEqual(move, chess.Move.from_uci("b5c4"))
 		
 	def test_is_mating(self):
@@ -110,6 +111,13 @@ class TestMoveCalculator(unittest.TestCase):
 		self.assertTrue(move_calculator.is_mating(position_evaluator.MIN_EVAL + 5))
 		self.assertFalse(move_calculator.is_mating(0))
 
+	@unittest.skip("Used for temporary testing")
+	def test(self):
+		board = Board("4r3/p2k1p2/q2b1n1p/Pr1pp1p1/1P1pP1P1/1b1P1B2/3BQP1P/2RN1RK1 w - - 12 34")
+		time = 5
+		move = move_calculator.calculate_with_thread(board, time)[1]
+		print(move)
+		
 
 if __name__ == '__main__':
 	unittest.main()
