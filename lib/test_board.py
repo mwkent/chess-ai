@@ -5,6 +5,26 @@ from board import Board
 
 class TestBoard(unittest.TestCase):
 
+	def test_copy(self):
+		board = Board()
+		board.push(chess.Move.from_uci("e2e4"))
+		board.get_phase(chess.BLACK)
+		board.get_attackers_and_defenders(chess.D2, chess.BLACK)
+		
+		board_copy = board.copy()
+		self.assertEqual(board, board_copy)
+		self.assertEqual(board._phase, board_copy._phase)
+		self.assertEqual(board._squares_to_attackers_and_defenders,
+						board_copy._squares_to_attackers_and_defenders)
+		
+		board.push(chess.Move.from_uci("e7e5"))
+		board.get_phase(chess.WHITE)
+		board.get_attackers_and_defenders(chess.D7, chess.WHITE)
+		self.assertNotEqual(board, board_copy)
+		self.assertNotEqual(board._phase, board_copy._phase)
+		self.assertNotEqual(board._squares_to_attackers_and_defenders,
+						board_copy._squares_to_attackers_and_defenders)
+
 	def test_get_phase_of_opening(self):
 		board = Board()
 		self.assertEqual(board.get_phase(chess.WHITE), 0)
@@ -44,6 +64,16 @@ class TestBoard(unittest.TestCase):
 		first_defenders = [chess.A1]
 		second_defenders = [chess.C3]
 		self.assertEqual(board.get_attackers_and_defenders(defended_pawn), \
+			(first_attackers, second_attackers, first_defenders, second_defenders))
+
+	def test_battery_through_opponents_piece(self):
+		board = Board("1r3kn1/p3qppr/n3p3/3pP1Q1/1PpP1B1N/P1P1R3/2b1BPPP/R5K1 w - - 9 27")
+		free_knight = chess.H4
+		first_attackers = [chess.H7]
+		second_attackers = [chess.E7]
+		first_defenders = [chess.G5]
+		second_defenders = []
+		self.assertEqual(board.get_attackers_and_defenders(free_knight), \
 			(first_attackers, second_attackers, first_defenders, second_defenders))
 
 	def test_chess_960_castling(self):
