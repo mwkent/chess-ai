@@ -95,6 +95,7 @@ def position(parts, board):
 		nr += 1
 	elapsed_time = time.time() - start_time
 	print("time to set position =", elapsed_time)
+	print(board.fen())
 
 def go(parts, board):
 	movetime = None
@@ -159,14 +160,15 @@ def go(parts, board):
 	if depth == None:
 		depth = 10
 
-	result = move_calculator.calculate(board, current_duration, depth, is_ponder=ponder)
+	result = move_calculator.calculate_with_thread(board, current_duration,
+												depth, is_ponder=ponder)
 
 	if result and result[1]:
 		send('bestmove %s' % result[1].uci())
 		board.push(result[1])
 
 	else:
-		# Throw exception
+		# Todo: Throw exception
 		print("ERROR getting move")
 		send('bestmove a1a1')
 
@@ -231,6 +233,6 @@ def main():
 		l('ctrl+c pressed')
 
 	except Exception as ex:
-		send(ex)
+		traceback.print_exc()
 		l(str(ex))
 		l(traceback.format_exc())

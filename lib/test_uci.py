@@ -21,7 +21,14 @@ class TestUci(unittest.TestCase):
 		line = "setoption name go_commands value {'movetime': 1000}"
 		parts = line.split(' ')
 		uci.set_option(parts, board)
-				
+
+	def test_go(self):
+		board = Board()
+		line = "go movetime 1000"
+		parts = line.split(' ')
+		uci.go(parts, board)
+		
+		
 
 if __name__ == '__main__':
 	unittest.main()
