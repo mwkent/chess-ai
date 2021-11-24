@@ -1,6 +1,7 @@
 import chess
 import chess_util
-from typing import List
+from typing import List, Set
+from constants import PIECE_TYPES_TO_ROUGH_VALUES
 
 PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, 
                          chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
@@ -13,6 +14,12 @@ class Board(chess.Board, object):
         self._phase = {}
         self._squares_to_attackers_and_defenders = {}
         super(Board, self).__init__(fen=fen, chess960=chess960)
+
+    def copy(self):
+        board = super().copy()
+        board._phase = self._phase.copy()
+        board._squares_to_attackers_and_defenders = self._squares_to_attackers_and_defenders.copy()
+        return board
 
     # Todo: Update phase rather than reset it
     def push(self, move):
@@ -92,12 +99,13 @@ class Board(chess.Board, object):
     # Get second attackers and defenders - the attackers and defenders who can't move to square first
     # i.e. pieces that may be in a battery or are pinned
     # Technically, pinned pieces could be first attackers or defenders
-    def get_second_attackers_and_defenders(self, square, first_attackers, first_defenders, 
+    def get_second_attackers_and_defenders(self, square: chess.Square, first_attackers, first_defenders, 
                                            defend_color: chess.Color=None):
         if defend_color is None:
             defend_color = self.color_at(square)
-        second_attackers = self.get_battery_attackers(square, not defend_color, first_attackers)
-        second_defenders = self.get_battery_attackers(square, defend_color, first_defenders)
+        first_attackers_and_defenders = first_attackers + first_defenders
+        second_attackers = self.get_battery_attackers(square, not defend_color, first_attackers_and_defenders)
+        second_defenders = self.get_battery_attackers(square, defend_color, first_attackers_and_defenders)
 
         pinned_attackers, pinned_defenders = self.get_pinned_attackers_and_defenders(square, defend_color)
         second_attackers += pinned_attackers
@@ -123,4 +131,15 @@ class Board(chess.Board, object):
             self._squares_to_attackers_and_defenders[piece] = \
                 first_attackers, second_attackers, first_defenders, second_defenders
         return self._squares_to_attackers_and_defenders[piece]
+    
+    def get_stronger_pieces_attacked_by(self, piece: chess.Square) -> Set[chess.Square]:
+        """Returns a set of the pieces that have a higher value than `piece`
+        and are being attacked by piece
+        """
+        piece_color = self.color_at(piece)
+        piece_value = PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(piece)]
+        return {attacked_square for attacked_square in self.attacks(piece)
+                       if self.piece_at(attacked_square) is not None and
+                       self.color_at(attacked_square) != piece_color and
+                       piece_value < PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(attacked_square)]}
 
