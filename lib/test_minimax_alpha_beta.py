@@ -3,6 +3,7 @@ import chess
 import chess_util
 import minimax_alpha_beta
 from board import Board
+import move_filter
 
 class TestMinimaxAlphaBeta(unittest.TestCase):
 
@@ -95,7 +96,7 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQkq - 1 15")
 		# Note: Changed from 2 to 1 with quiescence search
-		move = minimax_alpha_beta.pick_move(board, 1)
+		move = minimax_alpha_beta.pick_move(board, 2)
 		self.assertIn(move, [chess.Move.from_uci("b7c5"), chess.Move.from_uci("c2c3"), chess.Move.from_uci("c1d2")])
 
 	def test_free_bishop(self):
@@ -128,21 +129,23 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("e6f6"))
 		
+	#@unittest.skip("need to figure out how to handle attacking queens in tactics check")
 	def test_queen_pinned_to_mate(self):
 		board = Board("2rq3r/pp3kpp/5n2/2bpQ3/8/5B2/PPP2PPP/RN2R1K1 b - - 4 15")
-		move = minimax_alpha_beta.pick_move(board, 1)
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
 		self.assertEqual(move, chess.Move.from_uci("h8e8"))
 
 	def test_free_bishop2(self):
 		board = Board("r1b1k1r1/pp1n1p1p/2pqp3/3p4/3PnB2/3B1NPP/PPP2P2/R2QR1K1 b q - 2 14")
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("d6f4"))
-		
+
 	def test_free_pawn2(self):
 		# Bishop is attacking a defended knight and a free pawn
 		board = Board("r2r2k1/2p1qp1p/1pn2np1/p1b1p3/8/PP1PN2P/1BPQNPP1/3R2KR b - - 4 20")
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("c5a3"))
+
 
 
 if __name__ == '__main__':
