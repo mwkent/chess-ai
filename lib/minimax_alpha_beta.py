@@ -25,15 +25,18 @@ tt_hit_count = 0
 # Don't need to pass in alpha and beta like in minimax
 def minimax_helper(board, depth, forced_mate_depth: int=2,
 				num_captures: int=8, use_tt=False, sort_moves=False,
+				move_filter=None,
 				evaluate_position=position_evaluator.evaluate_position):
 	start = datetime.datetime.now()
 	turn = board.turn
 	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
-		evaluate_position, use_tt, sort_moves,
+		evaluate_position, use_tt, sort_moves, move_filter=move_filter,
 		forced_mate_depth=forced_mate_depth, num_captures=num_captures)
 	print("depth =", depth)
 	print("capture depth =", num_captures)
 	print("forced mate depth =", forced_mate_depth)
+	if move_filter is not None:
+		print("move filter =", move_filter.__name__)
 	print("result = ", result)
 	global prune_count, node_count, tt_hit_count
 	print("prune_count = ", prune_count)
@@ -42,12 +45,15 @@ def minimax_helper(board, depth, forced_mate_depth: int=2,
 		print("tt_hit_count = ", tt_hit_count)
 	end = datetime.datetime.now()
 	print("move time = ", end-start)
+	if result is None:
+		return(None, None)
 	return (result[0], result[1][0])
 
 
-def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, sort_moves=False, depth_reached=0,
+def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, sort_moves=False,
+		move_filter=None, depth_reached=0,
 		forced_mate_depth: int=2, num_captures: int=8):
-	"""Returns (evaluation, move list)
+	"""Returns (evaluation, move list) or None if there is no move
 	alpha is the min possible value
 	beta is the max possible value
 	"""
@@ -72,6 +78,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 			tt_hit_count += 1
 			return tt_hit[1]
 	moves = list(board.legal_moves)
+	if depth == 1 and move_filter is not None:
+		moves = [move for move in moves if move_filter(board, move)]
 	if (sort_moves):
 		moves = sorted(moves, reverse = True, key = lambda move: get_move_value(board, turn, move, evaluate_position))
 	maximizing = board.turn == turn
@@ -157,10 +165,11 @@ def init_counts():
 	tt_hit_count = 0
 
 # Minimax with alpha beta pruning to some depth
-def pick_full_move(board, depth=3, forced_mate_depth=2, num_captures=8):
+def pick_full_move(board, depth=3, forced_mate_depth=2, num_captures=8,
+				move_filter=None):
 	init_counts()
 	result = minimax_helper(board, depth, forced_mate_depth=forced_mate_depth,
-						num_captures=num_captures)
+						num_captures=num_captures, move_filter=move_filter)
 	return result
 
 # Minimax with alpha beta pruning to some depth
