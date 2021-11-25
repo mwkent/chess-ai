@@ -377,6 +377,9 @@ def search(board: Board, turn: chess.Color, return_best: bool=False,
            forced_mate_depth: int=2):
     """Returns the evaluation and the list of best moves that were calculated
     """
+    game_over_eval = position_evaluator.get_game_over_eval(board, turn)
+    if game_over_eval is not None:
+        return game_over_eval, []
     if endgame.is_endgame(board):
         return position_evaluator.evaluate_position(board, turn), []
     for num_checks in range(1, forced_mate_depth):

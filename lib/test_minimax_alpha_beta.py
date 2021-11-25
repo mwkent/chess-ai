@@ -146,6 +146,17 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("c5a3"))
 
+	def test_avoid_draw(self):
+		board = Board("8/2Q4k/8/p1p2r1p/5P2/3P2KP/2P2P2/8 b - - 11 42")
+		board.push(chess.Move.from_uci("h7g6"))
+		board.push(chess.Move.from_uci("c7b6"))
+		board.push(chess.Move.from_uci("g6h7"))
+		board.push(chess.Move.from_uci("b6c7"))
+		board.push(chess.Move.from_uci("h7g6"))
+		board.push(chess.Move.from_uci("c7b6"))
+		board.push(chess.Move.from_uci("g6h7"))
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertNotEqual(move, chess.Move.from_uci("b6c7"))
 
 
 if __name__ == '__main__':

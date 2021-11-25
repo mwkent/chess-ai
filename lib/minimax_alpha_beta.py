@@ -10,6 +10,7 @@ import datetime
 import time
 from transposition_table2 import tt_init, tt_lookup_helper, tt_store
 import search_extension
+import move_filter
 
 # Mate in 2 is worse than mate in 1
 MATE_DEPTH_PENALTY = 1
@@ -173,8 +174,8 @@ def pick_full_move(board, depth=3, forced_mate_depth=2, num_captures=8,
 	return result
 
 # Minimax with alpha beta pruning to some depth
-def pick_move(board, depth=3):
-	return pick_full_move(board, depth)[1]
+def pick_move(board, depth=3, move_filter=None):
+	return pick_full_move(board, depth, move_filter=move_filter)[1]
 
 # Sort moves to facilitate more pruning
 def pick_full_move_with_sort(board, depth=3):
