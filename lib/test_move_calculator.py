@@ -55,7 +55,7 @@ class TestMoveCalculator(unittest.TestCase):
 	# Sacs bishop for pawn, knight is defending but pinned
 	def test_bishop_blunder(self):
 		board = Board("r1bq1rk1/pp1n1nb1/2p1Q2p/8/P2P4/2N1BN2/1PP2PPP/R4RK1 w - - 1 18")
-		move = get_move(board)
+		move = get_move(board, time=1)
 		self.assertNotEqual(move, chess.Move.from_uci("e3h6"))
 
 	# Don't go for draw if winning
@@ -113,7 +113,7 @@ class TestMoveCalculator(unittest.TestCase):
 
 	@unittest.skip("Used for temporary testing")
 	def test(self):
-		board = Board("4r3/p2k1p2/q2b1n1p/Pr1pp1p1/1P1pP1P1/1b1P1B2/3BQP1P/2RN1RK1 w - - 12 34")
+		board = Board("5b1k/7p/8/7P/8/5r1K/5q2/8 w - - 2 49")
 		time = 5
 		move = move_calculator.calculate_with_thread(board, time)[1]
 		print(move)
