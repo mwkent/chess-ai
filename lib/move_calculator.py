@@ -120,7 +120,9 @@ def calculate(board, max_think_time, max_depth=20, is_ponder=False):
     # If there's only one move, no need to calculate
     moves = list(board.legal_moves)
     if len(moves) == 1:
-        return [None, moves[0], 0, 0]
+        result = [None, moves[0], 0, 0]
+        set_result(result)
+        return result
 
     #result, stop_search = pick_tactics_move(board, max_think_time, start_ts,
     #                                        move_filter=is_hard_tactic)
