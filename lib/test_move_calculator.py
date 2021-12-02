@@ -4,6 +4,7 @@ import move_calculator
 import chess_util
 from board import Board
 import position_evaluator
+import move_filter
 
 def get_move(board, time=.5):
 		return move_calculator.calculate_with_thread(board, time)[1]
@@ -20,6 +21,13 @@ class TestMoveCalculator(unittest.TestCase):
 		move = get_move(board)
 		self.assertNotEqual(move, chess.Move.from_uci('g7g5'))
 
+	@unittest.skip("Fix this")
+	def test_avoid_mate2(self):
+		board = Board("rb2rk2/pN4pp/1n1p1pn1/4p3/P4P2/4B1N1/qPPPP1PP/2K1RQ2 w - - 1 12")
+		move = get_move(board)
+		self.assertIn(move, {chess.Move.from_uci('c2c3'), chess.Move.from_uci('c2c4'),
+							chess.Move.from_uci('d2d3'), chess.Move.from_uci('d2d4')})
+
 	def test_getting_mated(self):
 		board = Board("1n3k2/5ppr/8/pp1p1b2/3P3P/4rP2/PP5q/4K3 w - - 0 34")
 		move = get_move(board)
@@ -30,10 +38,16 @@ class TestMoveCalculator(unittest.TestCase):
 		move = get_move(board, 4)
 		self.assertEqual(move, chess.Move.from_uci('d4c3'))
 
-	def test_knight_blunder2(self):
+	def test_knight_blunder(self):
 		board = Board("r3r1k1/2p2p1p/1pn1q1p1/3pp2n/8/2P1PPPP/pRQP2BK/B4R2 b - - 1 27")
 		move = get_move(board, time=2)
 		self.assertNotEqual(move, chess.Move.from_uci("h5g3"))
+
+	@unittest.skip("Too slow to find move that isn't blunder")
+	def test_knight_blunder2(self):
+		board = Board("rb1kr3/pp4pp/1n1pqpn1/2p1p3/P4P2/3NB1N1/RPPPP1PP/2K1RQ2 w kq - 1 10")
+		move = get_move(board, time=5)
+		#self.assertNotEqual(move, chess.Move.from_uci("h5g3"))
 
 	# rook and pawn
 	def test_mate_with_rook(self):
@@ -107,17 +121,23 @@ class TestMoveCalculator(unittest.TestCase):
 		self.assertEqual(move, chess.Move.from_uci("b5c4"))
 		
 	def test_is_mating(self):
-		self.assertTrue(move_calculator.is_mating(position_evaluator.MAX_EVAL - 5))
-		self.assertTrue(move_calculator.is_mating(position_evaluator.MIN_EVAL + 5))
-		self.assertFalse(move_calculator.is_mating(0))
+		self.assertTrue(move_calculator.is_mating(position_evaluator.MAX_EVAL - 5,
+					depth=1, move_filter=None))
+		self.assertTrue(move_calculator.is_mating(position_evaluator.MIN_EVAL + 5,
+					depth=1, move_filter=None))
+		self.assertFalse(move_calculator.is_mating(0, depth=1, move_filter=None))
+		self.assertFalse(move_calculator.is_mating(position_evaluator.MIN_EVAL + 5,
+					depth=1, move_filter=move_filter.is_hard_tactic))
+		self.assertTrue(move_calculator.is_mating(position_evaluator.MIN_EVAL + 5,
+					depth=2, move_filter=move_filter.is_hard_tactic))
 
-	@unittest.skip("Used for temporary testing")
+	#@unittest.skip("Used for temporary testing")
 	def test(self):
-		board = Board("5b1k/7p/8/7P/8/5r1K/5q2/8 w - - 2 49")
+		board = Board("rb1kr3/pp4pp/1n1pqpn1/2p1p3/P4P2/3NB1N1/RPPPP1PP/2K1RQ2 w kq - 1 10")
 		time = 5
 		move = move_calculator.calculate_with_thread(board, time)[1]
 		print(move)
-		
+
 
 if __name__ == '__main__':
 	unittest.main()
