@@ -86,7 +86,8 @@ def is_attack_or_defend_higher_valued_pieces(board: Board, move: chess.Move) -> 
     """Does `move` change the set of stronger attacked pieces for the piece being moved
     or does `move` save the piece being moved from being attacked by a weaker piece
     """
-    piece = move.from_square
+    rook_from_square, rook_to_square = board.get_castling_rook(move)
+    piece = move.from_square if rook_from_square is None else rook_from_square
     # If piece is attacked by a weaker piece, consider all moves moving the attacked piece
     if chess_util.can_piece_be_captured_by_weaker_piece(board, piece):
         return True
@@ -94,7 +95,7 @@ def is_attack_or_defend_higher_valued_pieces(board: Board, move: chess.Move) -> 
     attacked_pieces = board.get_stronger_pieces_attacked_by(piece)
     
     board.push(move)
-    piece = move.to_square
+    piece = move.to_square if rook_to_square is None else rook_to_square
     attacked_pieces_after_move = board.get_stronger_pieces_attacked_by(piece)
     board.pop()
     
@@ -182,6 +183,14 @@ def is_soft_tactic(board: Board, move: chess.Move):
     return board.is_check() or is_check(board, move) or is_capture(board, move) or \
         is_pawn_promotion_move(move) or is_pawn_promotion_search_move(board, move) or \
         is_attack_or_defend_higher_valued_pieces(board, move)
+
+
+def is_soft_not_hard_tactic(board: Board, move: chess.Move):
+    return is_soft_tactic(board, move) and not is_hard_tactic(board, move)
+
+
+def is_non_tactic(board: Board, move: chess.Move):
+    return not is_soft_tactic(board, move)
 
 
 def get_soft_tactic_moves(board: Board):
