@@ -2,6 +2,7 @@ import chess
 import chess_util
 from typing import List, Set
 from constants import PIECE_TYPES_TO_ROUGH_VALUES
+from pickle import NONE
 
 PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, 
                          chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
@@ -50,6 +51,52 @@ class Board(chess.Board, object):
             scaled_min_opening_total = min_opening_total - max_endgame_total
             self._phase[color] = 1 - (scaled_piece_value_total * 1.0 / scaled_min_opening_total)
         return self._phase[color]
+
+    def gives_checkmate(self, move: chess.Move) -> bool:
+        """
+        Probes if the given move would put the opponent in checkmate. The move
+        must be at least pseudo-legal.
+        """
+        self.push(move)
+        try:
+            return self.is_checkmate()
+        finally:
+            self.pop()
+
+    def get_castling_rook(self, move: chess.Move) -> (chess.Square, chess.Square):
+        """Returns the from and to square of the rook that is being castled by `move`
+        """
+        rook_from_square = None
+        rook_to_square = None
+
+        if self.is_kingside_castling(move):
+            if self.turn == chess.WHITE:
+                rook_from_square = next(square for square in
+                                        chess_util.BACKRANK_WHITE_SQUARES_REVERSED
+                                        if self.color_at(square) == self.turn and
+                                        self.piece_type_at(square) == chess.ROOK)
+                rook_to_square = chess.F1
+            else: #Black's turn
+                rook_from_square = next(square for square in
+                                        chess_util.BACKRANK_BLACK_SQUARES_REVERSED
+                                        if self.color_at(square) == self.turn and
+                                        self.piece_type_at(square) == chess.ROOK)
+                rook_to_square = chess.F8
+        elif self.is_queenside_castling(move):
+            if self.turn == chess.WHITE:
+                rook_from_square = next(square for square in
+                                        chess_util.BACKRANK_WHITE_SQUARES
+                                        if self.color_at(square) == self.turn and
+                                        self.piece_type_at(square) == chess.ROOK)
+                rook_to_square = chess.D1
+            else: #Black's turn
+                rook_from_square = next(square for square in
+                                        chess_util.BACKRANK_BLACK_SQUARES
+                                        if self.color_at(square) == self.turn and
+                                        self.piece_type_at(square) == chess.ROOK)
+                rook_to_square = chess.D8
+
+        return rook_from_square, rook_to_square
 
     # Todo: Not considering battery attackers that are pinned?
     def get_pinned_attackers_and_defenders(self, piece, defend_color=None):

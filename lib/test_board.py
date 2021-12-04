@@ -37,6 +37,61 @@ class TestBoard(unittest.TestCase):
 		# Test cached value
 		self.assertEqual(board.get_phase(chess.BLACK), 1)
 
+	def test_gives_checkmate(self):
+		board = Board("rb2r3/pN2k1pp/1n1p1pn1/4P3/P7/4B1N1/qPPPP1PP/2K1RQ2 b - - 0 12")
+		move = chess.Move.from_uci("a2a1")
+		self.assertTrue(board.gives_checkmate(move))
+
+		move = chess.Move.from_uci("a2b2")
+		self.assertFalse(board.gives_checkmate(move))
+
+	def test_get_castling_rook(self):
+		board = Board("r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1")
+		move = chess.Move.from_uci("e1c1")
+		rook_from_square = chess.A1
+		rook_to_square = chess.D1
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+		move = chess.Move.from_uci("e1g1")
+		rook_from_square = chess.H1
+		rook_to_square = chess.F1
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+		board.push(chess.Move.null()) # Change to black's turn
+		move = chess.Move.from_uci("e8c8")
+		rook_from_square = chess.A8
+		rook_to_square = chess.D8
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+		move = chess.Move.from_uci("e8g8")
+		rook_from_square = chess.H8
+		rook_to_square = chess.F8
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+	def test_get_castling_rook_chess960(self):
+		board = Board("4rkr1/pppppppp/8/8/8/8/PPPPPPPP/1RK2R2 w - - 0 1")
+		board.chess960 = True
+		move = chess.Move.from_uci("c1b1")
+		rook_from_square = chess.B1
+		rook_to_square = chess.D1
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+		move = chess.Move.from_uci("c1f1")
+		rook_from_square = chess.F1
+		rook_to_square = chess.F1
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+		board.push(chess.Move.null()) # Change to black's turn
+		move = chess.Move.from_uci("f8e8")
+		rook_from_square = chess.E8
+		rook_to_square = chess.D8
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
+		move = chess.Move.from_uci("f8g8")
+		rook_from_square = chess.G8
+		rook_to_square = chess.F8
+		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
+
 	def test_get_attackers_and_defenders(self):
 		board = Board("rnbqk1nr/pppp1ppp/4p3/7Q/3P4/b1P1P3/PP3PPP/RNB1KBNR w KQkq - 3 5")
 		free_bishop = chess.A3
