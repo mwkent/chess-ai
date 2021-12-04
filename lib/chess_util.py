@@ -11,6 +11,14 @@ if TYPE_CHECKING:
 MAX_RANK = 7
 MAX_FILE = 7
 
+BACKRANK_WHITE_SQUARES = [chess.A1, chess.B1, chess.C1, chess.D1,
+						chess.E1, chess.F1, chess.G1, chess.H1]
+BACKRANK_WHITE_SQUARES_REVERSED = [chess.H1, chess.G1, chess.F1, chess.E1,
+								chess.D1, chess.C1, chess.B1, chess.A1]
+BACKRANK_BLACK_SQUARES = [chess.A8, chess.B8, chess.C8, chess.D8,
+						chess.E8, chess.F8, chess.G8, chess.H8]
+BACKRANK_BLACK_SQUARES_REVERSED = [chess.H8, chess.G8, chess.F8, chess.E8,
+								chess.D8, chess.C8, chess.B8, chess.A8]
 MOST_VALUABLE_TO_LEAST_PIECE_TYPES = [chess.QUEEN, chess.ROOK, chess.BISHOP, chess.KNIGHT, chess.PAWN]
 MINOR_PIECES = [chess.KNIGHT, chess.BISHOP]
 MAJOR_PIECES = [chess.ROOK, chess.QUEEN]
