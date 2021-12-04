@@ -133,8 +133,9 @@ class TestMoveCalculator(unittest.TestCase):
 
 	#@unittest.skip("Used for temporary testing")
 	def test(self):
-		board = Board("rb1kr3/pp4pp/1n1pqpn1/2p1p3/P4P2/3NB1N1/RPPPP1PP/2K1RQ2 w kq - 1 10")
-		time = 5
+		board = Board("r1b1kb1r/p2p3p/4ppN1/qpp3BQ/P2nP3/2NP4/1PP2PPP/R3K2R b KQkq - 0 11")
+		time = 3
+		#move = move_calculator.calculate(board, time)[1]
 		move = move_calculator.calculate_with_thread(board, time)[1]
 		print(move)
 

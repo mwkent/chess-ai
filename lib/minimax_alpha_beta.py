@@ -26,16 +26,19 @@ tt_hit_count = 0
 # Don't need to pass in alpha and beta like in minimax
 def minimax_helper(board, depth, forced_mate_depth: int=2,
 				num_captures: int=8, use_tt=False, sort_moves=False,
-				move_filter=None,
+				move_filter=None, extend_search: bool=True,
 				evaluate_position=position_evaluator.evaluate_position):
 	start = datetime.datetime.now()
 	turn = board.turn
 	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
 		evaluate_position, use_tt, sort_moves, move_filter=move_filter,
+		extend_search=extend_search,
 		forced_mate_depth=forced_mate_depth, num_captures=num_captures)
 	print("depth =", depth)
-	print("capture depth =", num_captures)
-	print("forced mate depth =", forced_mate_depth)
+	print("extend search =", extend_search)
+	if extend_search:
+		print("capture depth =", num_captures)
+		print("forced mate depth =", forced_mate_depth)
 	if move_filter is not None:
 		print("move filter =", move_filter.__name__)
 	print("result = ", result)
@@ -52,7 +55,7 @@ def minimax_helper(board, depth, forced_mate_depth: int=2,
 
 
 def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, sort_moves=False,
-		move_filter=None, depth_reached=0,
+		move_filter=None, depth_reached=0, extend_search: bool=True,
 		forced_mate_depth: int=2, num_captures: int=8):
 	"""Returns (evaluation, move list) or None if there is no move
 	alpha is the min possible value
@@ -62,10 +65,12 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 	node_count += 1
 	if depth == 0 or chess_util.is_game_over(board):
 		evaluation = 0
-		evaluation = search_extension.search(board, turn,
-											forced_mate_depth=forced_mate_depth,
-											num_captures_remaining=num_captures)
-		#evaluation = (evaluate_position(board, turn), [])
+		if extend_search:
+			evaluation = search_extension.search(board, turn,
+												forced_mate_depth=forced_mate_depth,
+												num_captures_remaining=num_captures)
+		else:
+			evaluation = (evaluate_position(board, turn, check_tactics=True, extend=True), [])
 		#print("depth = ", depth)
 		#print("leaf evaluation = ", evaluation)
 		#print("is game over =", board.is_game_over(claim_draw=True))
@@ -89,6 +94,7 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 		for move in moves:
 			board.push(move)
 			evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_tt, sort_moves,
+								move_filter=move_filter, extend_search=extend_search,
 								num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 			board.pop()
 			if max_evaluation == None or evaluation[0] > max_evaluation[0]: # greater than so max_evaluation only gets replaced if evaluation is higher
@@ -110,6 +116,7 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 	for move in moves:
 		board.push(move)
 		evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_tt, sort_moves,
+							move_filter=move_filter, extend_search=extend_search,
 							num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 		board.pop()
 		if min_evaluation == None or evaluation[0] < min_evaluation[0]:
@@ -167,10 +174,11 @@ def init_counts():
 
 # Minimax with alpha beta pruning to some depth
 def pick_full_move(board, depth=3, forced_mate_depth=2, num_captures=8,
-				move_filter=None):
+				move_filter=None, extend_search: bool=True):
 	init_counts()
 	result = minimax_helper(board, depth, forced_mate_depth=forced_mate_depth,
-						num_captures=num_captures, move_filter=move_filter)
+						num_captures=num_captures, move_filter=move_filter,
+						extend_search=extend_search)
 	return result
 
 # Minimax with alpha beta pruning to some depth
