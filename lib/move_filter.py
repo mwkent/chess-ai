@@ -82,24 +82,64 @@ def is_capture(board: Board, move: chess.Move) -> bool:
     return board.is_capture(move)
 
 
-def is_attack_or_defend_higher_valued_pieces(board: Board, move: chess.Move) -> bool:
+def make_or_relieve_threat(board: Board, move: chess.Move) -> bool:
+    """Does `move` make a threat or reduce the number of threats?
+    """
+    rook_from_square, rook_to_square = board.get_castling_rook(move)
+    piece = move.from_square if rook_from_square is None else rook_from_square
+    # If piece is attacked by a weaker piece, consider all moves moving the attacked piece
+    if chess_util.can_piece_be_captured_by_weaker_piece(board, piece) or \
+        chess_util.can_hanging_piece_be_captured(board, piece):
+        return True
+
+    attacked_pieces = board.get_stronger_pieces_attacked_by(piece)
+    attacked_pieces.update(board.get_hanging_pieces_attacked_by(piece))
+
+    try:
+        board.push(move)
+        piece = move.to_square if rook_to_square is None else rook_to_square
+        if chess_util.can_piece_be_captured_by_weaker_piece(board, piece) or \
+            chess_util.can_hanging_piece_be_captured(board, piece):
+            return False
+
+        attacked_pieces_after_move = board.get_stronger_pieces_attacked_by(piece)
+        attacked_pieces_after_move.update(board.get_hanging_pieces_attacked_by(piece))
+        return bool(attacked_pieces_after_move - attacked_pieces)
+
+    finally:
+        board.pop()
+
+
+def  is_attack_or_defend_higher_valued_pieces(board: Board, move: chess.Move) -> bool:
     """Does `move` change the set of stronger attacked pieces for the piece being moved
     or does `move` save the piece being moved from being attacked by a weaker piece
     """
-    rook_from_square, rook_to_square = board.get_castling_rook(move)
+    #rook_from_square, rook_to_square = board.get_castling_rook(move)
+    rook_from_square, _ = board.get_castling_rook(move)
     piece = move.from_square if rook_from_square is None else rook_from_square
     # If piece is attacked by a weaker piece, consider all moves moving the attacked piece
     if chess_util.can_piece_be_captured_by_weaker_piece(board, piece):
         return True
     
-    attacked_pieces = board.get_stronger_pieces_attacked_by(piece)
+    all_pieces = board.get_all_pieces()
+    attacked_pieces = set()
+    for piece in all_pieces:
+        attacked_pieces.update(board.get_stronger_pieces_attacked_by(piece))
     
     board.push(move)
-    piece = move.to_square if rook_to_square is None else rook_to_square
-    attacked_pieces_after_move = board.get_stronger_pieces_attacked_by(piece)
+    #piece = move.to_square if rook_to_square is None else rook_to_square
+    all_pieces = board.get_all_pieces()
+    attacked_pieces_after_move = set()
+    for piece in all_pieces:
+        attacked_pieces_after_move.update(board.get_stronger_pieces_attacked_by(piece))
+    #attacked_pieces_after_move = board.get_stronger_pieces_attacked_by(piece)
+    more_enemy_attacked = any(board.color_at(piece) == board.turn for piece in attacked_pieces_after_move - attacked_pieces)
     board.pop()
     
-    return attacked_pieces != attacked_pieces_after_move
+    fewer_own_attacked = any(board.color_at(piece) == board.turn for piece in attacked_pieces - attacked_pieces_after_move)
+    return fewer_own_attacked or more_enemy_attacked
+    
+    #return attacked_pieces != attacked_pieces_after_move
 
 
 def is_attack_or_defend(board: Board, move: chess.Move) -> bool:
@@ -169,6 +209,13 @@ def is_attack_or_defend2(board: Board, move: chess.Move) -> bool:
         board.pop()
 
 
+def is_drawing(board: Board, move: chess.Move):
+    board.push(move)
+    drawing = chess_util.is_draw(board)
+    board.pop()
+    return drawing
+
+
 def is_hard_tactic(board: Board, move: chess.Move):
     """Does `move` have a high likelihood of being a tactical move?
     Consider all moves when in check, quality capture, and pawn promotions. 
@@ -182,8 +229,10 @@ def is_soft_tactic(board: Board, move: chess.Move):
     """
     return board.is_check() or is_check(board, move) or is_capture(board, move) or \
         is_pawn_promotion_move(move) or is_pawn_promotion_search_move(board, move) or \
-        is_attack_or_defend_higher_valued_pieces(board, move)
-
+        make_or_relieve_threat(board, move) or \
+        is_drawing(board, move)
+        #is_attack_or_defend_higher_valued_pieces(board, move) or \
+        
 
 def is_soft_not_hard_tactic(board: Board, move: chess.Move):
     return is_soft_tactic(board, move) and not is_hard_tactic(board, move)

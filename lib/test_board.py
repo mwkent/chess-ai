@@ -141,6 +141,12 @@ class TestBoard(unittest.TestCase):
 		board.chess960 = True
 		self.assertTrue(queenside_castle in list(board.legal_moves))
 
+	def test_get_hanging_pieces_attacked_by(self):
+		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
+		piece = chess.E4
+		hanging_pieces = {chess.E6}
+		self.assertEqual(hanging_pieces, board.get_hanging_pieces_attacked_by(piece))
+
 
 if __name__ == '__main__':
 	unittest.main()

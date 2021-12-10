@@ -190,3 +190,11 @@ class Board(chess.Board, object):
                        self.color_at(attacked_square) != piece_color and
                        piece_value < PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(attacked_square)]}
 
+    def get_hanging_pieces_attacked_by(self, piece: chess.Square) -> Set[chess.Square]:
+        """Returns a set of the pieces that are hanging
+        and are being attacked by `piece`
+        """
+        return {attacked_square for attacked_square in self.attacks(piece)
+                if self.piece_at(attacked_square) is not None and
+                chess_util.can_hanging_piece_be_captured_by(self, piece, attacked_square)}
+

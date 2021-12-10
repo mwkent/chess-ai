@@ -227,6 +227,29 @@ class TestChessUtil(unittest.TestCase):
 		attacked_piece = chess.F6
 		self.assertFalse(chess_util.can_piece_capture(board, attacking_piece, attacked_piece))
 
+	def test_can_hanging_piece_be_captured(self):
+		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
+		piece = chess.E4
+		self.assertTrue(chess_util.can_hanging_piece_be_captured(board, piece))
+
+		piece = chess.B4
+		self.assertFalse(chess_util.can_hanging_piece_be_captured(board, piece))
+
+	def test_can_hanging_piece_be_captured_by(self):
+		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
+		attacking_piece = chess.E4
+		attacked_piece = chess.B4
+		self.assertFalse(chess_util.can_hanging_piece_be_captured_by(board, attacking_piece, attacked_piece))
+
+		attacked_piece = chess.E2
+		self.assertFalse(chess_util.can_hanging_piece_be_captured_by(board, attacking_piece, attacked_piece))
+
+		attacked_piece = chess.E6
+		self.assertTrue(chess_util.can_hanging_piece_be_captured_by(board, attacking_piece, attacked_piece))
+
+		attacked_piece = chess.G4
+		self.assertFalse(chess_util.can_hanging_piece_be_captured_by(board, attacking_piece, attacked_piece))
+
 	def test_get_attackers(self):
 		board = Board("1r2r1k1/p4pbp/q2p1np1/1ppPp3/1bB1P3/1QN2PPB/P6P/2BRK2R w K - 0 24")
 		color = chess.WHITE

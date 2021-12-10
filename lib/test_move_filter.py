@@ -57,6 +57,17 @@ class TestMoveFilter(unittest.TestCase):
 		moves = ["d2g5", "g6e4", "g5h4"]
 		self.get_potential_tactics_moves_helper(board, moves)
 
+	def test_make_or_relieve_threat(self):
+		board = Board("8/p7/8/1R6/r1k2P1P/2p3P1/2K5/8 w - - 1 51")
+		move = chess.Move.from_uci("b5b8")
+		self.assertTrue(move_filter.make_or_relieve_threat(board, move))
+
+		move = chess.Move.from_uci("b5a5")
+		self.assertTrue(move_filter.make_or_relieve_threat(board, move))
+
+		move = chess.Move.from_uci("f4f5")
+		self.assertFalse(move_filter.make_or_relieve_threat(board, move))
+
 	def test_is_attack_or_defend_higher_valued_pieces(self):
 		"""Pawn can be moved to attack bishop.
 		"""
@@ -75,12 +86,35 @@ class TestMoveFilter(unittest.TestCase):
 			print(count, "move =", move, " :",
 				move_filter.is_attack_or_defend_higher_valued_pieces(board, move))
 
+	def test_is_drawing(self):
+		board = Board("4r1k1/1p4p1/2p2p1p/3n4/8/1r3PPP/4p3/R1R1B1K1 b - - 1 37")
+		board.push(chess.Move.from_uci("g8h8"))
+		board.push(chess.Move.from_uci("a1a2"))
+		board.push(chess.Move.from_uci("h8g8"))
+		board.push(chess.Move.from_uci("a2a1"))
+		board.push(chess.Move.from_uci("g8h8"))
+		board.push(chess.Move.from_uci("a1a2"))
+		move = chess.Move.from_uci("h8g8")
+		self.assertFalse(move_filter.is_drawing(board, move))
+		board.push(move)
+		self.assertTrue(move_filter.is_drawing(board, chess.Move.from_uci("a2a1")))
+
 	def test_is_soft_tactic(self):
 		board = Board("r1k3br/1pp3p1/p4nnp/4P1N1/Nb6/1P4B1/P1P1BPPP/R2R2K1 w - - 0 16")
 		moves = ["g5h3", "a4b6", "g3c7", "d1d8", "c2c3", "e5e6"]
 		for move_str in moves:
 			move = chess.Move.from_uci(move_str)
 			self.assertTrue(move_filter.is_soft_tactic(board, move))
+
+	def test_is_soft_tactic2(self):
+		board = Board("rnbqk1nr/ppp1ppb1/3p2pp/6B1/2PP4/2N2N2/PP2PPPP/R2QKB1R w KQkq - 4 8")
+		move = chess.Move.from_uci("f3e5")
+		self.assertFalse(move_filter.is_soft_tactic(board, move))
+
+	def test_save_hanging_rook_is_soft_tactic(self):
+		board = Board("8/p7/8/1R6/r1k2P1P/2p3P1/2K5/8 w - - 1 51")
+		move = chess.Move.from_uci("b5b8")
+		self.assertTrue(move_filter.is_soft_tactic(board, move))
 
 	def test_get_soft_tactic_moves(self):
 		board = Board("r1k3br/1pp3p1/p4nnp/4P1N1/Nb6/1P4B1/P1P1BPPP/R2R2K1 w - - 0 16")

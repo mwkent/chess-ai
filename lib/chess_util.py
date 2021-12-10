@@ -207,6 +207,22 @@ def can_piece_be_captured(board, piece):
 	color = not board.color_at(piece)
 	return any(attacker for attacker in board.attackers(color, piece) if can_piece_capture(board, attacker, piece))
 
+
+def can_hanging_piece_be_captured(board, piece):
+	"""Is `piece` undefended, and can it be captured?
+	"""
+	if board.attackers(board.color_at(piece), piece):
+		return False
+	return any(attacker for attacker in board.attackers(not board.color_at(piece), piece)
+			if can_piece_capture(board, attacker, piece))
+
+def can_hanging_piece_be_captured_by(board, attacking_piece, attacked_piece):
+	"""Is `attacked_piece` undefended, and can it be captured by `attacking_piece`?
+	"""
+	if board.attackers(board.color_at(attacked_piece), attacked_piece):
+		return False
+	return can_piece_capture(board, attacking_piece, attacked_piece)
+
 # Can attacking piece take attacked piece
 # Assumes that attacking_piece is actually attacking attacked_piece
 def can_piece_capture(board, attacking_piece, attacked_piece):
