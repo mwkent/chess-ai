@@ -3,6 +3,7 @@ import chess
 import chess_util
 import minimax_alpha_beta
 from board import Board
+import move_filter
 
 # For slower minimax alpha beta tests
 class TestSlowMinimaxAlphaBeta(unittest.TestCase):
@@ -172,7 +173,7 @@ class TestSlowMinimaxAlphaBeta(unittest.TestCase):
 
 	# Takes ~2 minutes to go to depth 1
 	# Delete
-	@unittest.skip("missing assert")
+	#@unittest.skip("missing assert")
 	def test_slow(self):
 		board = Board("r1bqkb1r/1pp2pp1/p1np3p/1B2n3/4P3/2N2N2/PPP2PPP/R1BQK2R w KQkq - 0 10")
 		move = minimax_alpha_beta.pick_move(board, 1)
@@ -215,27 +216,24 @@ class TestSlowMinimaxAlphaBeta(unittest.TestCase):
 		self.assertIn(move, {chess.Move.from_uci("f6f7"), chess.Move.from_uci("f6e7"), \
 							chess.Move.from_uci("f6g6"), chess.Move.from_uci("d5d4")})
 
+	def test_queen_bishop_hang(self):
+		board = Board("rnbqk1nr/ppp1ppb1/3p2pp/6B1/2PP4/2N2N2/PP2PPPP/R2QKB1R w KQkq - 0 6")
+		move = minimax_alpha_beta.pick_move(board, 3, move_filter=move_filter.is_soft_tactic,
+										move_filter_depth=2)
+		self.assertNotEqual(move, chess.Move.from_uci("d1a4"))
+
 	# Winning endgame test
 	#@unittest.skip("missing assert")
 	def test2(self):
-		board = Board("7k/2p3p1/3n3p/8/8/1K1n4/4r3/8 b - - 2 74")
-		move = minimax_alpha_beta.pick_move(board, 1)
-		move = minimax_alpha_beta.pick_move(board, 2)
-		move = minimax_alpha_beta.pick_move(board, 3)
+		board = Board("5r2/2bp1pkp/2n3p1/q3P3/1pQ5/1P3N2/5PPP/1N3RK1 w - - 0 26")
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_non_tactic)
 
 	def test(self):
-		board = Board("rbk4r/pp4pp/3p1q2/3p1p2/8/1PBpP3/PK3PPP/R4Q1R b kq - 3 19")
+		board = Board("1r2r1k1/p1p2ppp/8/1p1p4/4n3/q3PNPP/1nQ1RP2/2B2NK1 b - - 1 24")
+		move = minimax_alpha_beta.pick_move(board, 1, extend_search=False)
 		move = minimax_alpha_beta.pick_move(board, 1)
 		move = minimax_alpha_beta.pick_move(board, 2)
-
-		print("After saving queen")
-		board = Board("rbk4r/pp3qpp/3p4/3p1p2/8/1PBpP3/PK3PPP/R4Q1R w kq - 4 20")
-		move = minimax_alpha_beta.pick_move(board, 1)
-		#print()
-		#board.push_uci("g2g3")
-		#print("after best move")
-		#move = minimax_alpha_beta.pick_move(board, 1)
-
 
 
 
