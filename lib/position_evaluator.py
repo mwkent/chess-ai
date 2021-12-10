@@ -4,7 +4,6 @@ import chess_util
 import endgame
 from board import Board
 from typing import List
-from pickle import NONE
 
 # Todo: Knight strength with pawns; knights are stronger in closed positions
 # Todo: Avoid exchanges when down material/exchange when up material
@@ -58,7 +57,7 @@ FREE_TO_TAKE_MODIFIER = .9
 FREE_TO_TAKE_NOT_TURN_MODIFIER = .1
 FREE_TO_TAKE_MODIFIER_PENALTY = .1
 FREE_TO_TRADE_MODIFIER = 1.1
-DEFENDED_EVAL = 7
+DEFENDED_BONUS = 7
 DOUBLE_DEFENDED_BONUS = 10
 DEVELOPMENT_BONUS = [10, 0]
 
@@ -867,6 +866,18 @@ def get_open_file_to_king_penalty(board, color):
     return penalty
 
 
+# open ranks towards the king put the king at risk
+def get_open_rank_to_king_penalty(board, color):
+    # Todo: Need to complete this
+    penalty = 0
+    if chess_util.get_num_major_pieces(board, not color) > 1:
+        king = board.king(color)
+        adjacent_square = chess_util.add_file(king, -1)
+        if adjacent_square is not None and board.piece_type_at(adjacent_square) != chess.PAWN:
+            penalty += 0
+    return penalty
+
+
 # Todo
 # Open diagonals towards the king put the king at risk
 def get_open_diagonals_to_king_penalty(board, king_color):
@@ -1014,16 +1025,34 @@ def get_check_to_win_material_tactic_value(board, piece):
 
 
 # Pieces get a bonus for being defended
-def get_defended_bonus(board, piece):
+def get_defended_bonus_old(board, piece):
     color = board.color_at(piece)
-    defenders = [defender for defender in board.attackers(
-        color, piece) if not board.is_pinned(color, defender)]
+    #defenders = [defender for defender in board.attackers(
+    #    color, piece) if not board.is_pinned(color, defender)]
+    attackers_and_defenders = board.get_attackers_and_defenders(piece)
+    defenders = attackers_and_defenders[2] + attackers_and_defenders[3]
     if len(defenders) >= 2:
         return DOUBLE_DEFENDED_BONUS
     elif len(defenders) == 1 and board.piece_type_at(defenders[0]) == chess.PAWN:
         return PAWN_DEFENDING_BONUS
     elif len(defenders) == 1:
-        return DEFENDED_EVAL
+        return DEFENDED_BONUS
+    return 0
+
+
+# Pieces get a bonus for being defended
+def get_defended_bonus(board, piece):
+    color = board.color_at(piece)
+    #defenders = [defender for defender in board.attackers(
+    #    color, piece) if not board.is_pinned(color, defender)]
+    attackers_and_defenders = board.get_attackers_and_defenders(piece)
+    defenders = attackers_and_defenders[2] + attackers_and_defenders[3]
+    if len(defenders) >= 2:
+        return DOUBLE_DEFENDED_BONUS
+    elif len(defenders) == 1 and board.piece_type_at(defenders[0]) == chess.PAWN:
+        return PAWN_DEFENDING_BONUS
+    elif len(defenders) == 1:
+        return DEFENDED_BONUS
     return 0
 
 

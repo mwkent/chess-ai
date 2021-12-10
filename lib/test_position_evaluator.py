@@ -412,7 +412,7 @@ class TestPositionEvaluator(unittest.TestCase):
 		board = Board("rnbqk1nr/pppp1ppp/4p3/8/1b1PP3/2N2NP1/PPP2P1P/R1BQKB1R w KQkq - 0 1")
 		self.assertEqual(position_evaluator.get_defended_bonus(board, chess.E4), 0)
 		self.assertEqual(position_evaluator.get_defended_bonus(board, chess.D4), position_evaluator.DOUBLE_DEFENDED_BONUS)
-		self.assertEqual(position_evaluator.get_defended_bonus(board, chess.F3), position_evaluator.DEFENDED_EVAL)
+		self.assertEqual(position_evaluator.get_defended_bonus(board, chess.F3), position_evaluator.DEFENDED_BONUS)
 		self.assertEqual(position_evaluator.get_defended_bonus(board, chess.G3), position_evaluator.PAWN_DEFENDING_BONUS)
 
 	def test_get_blockaded_pawn_penalty(self):
