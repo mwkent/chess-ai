@@ -80,6 +80,21 @@ class TestMovePositionEvaluator(unittest.TestCase):
 		self.assertEqual(initial_pieces_evaluation, evaluator.pieces_evaluation)
 		self.assertEqual(initial_pieces_to_values, evaluator.pieces_to_values)
 
+	def test_checkmate(self):
+		turn = chess.WHITE
+
+		board = Board("rb2r3/p3k1pp/1n1N1pn1/4p3/P4P2/4B1N1/1PPPP1PP/q1K1RQ2 w - - 1 13")
+		evaluator = MovePositionEvaluator(board, turn)
+		initial_eval = evaluator.get_evaluation()
+		self.assertEqual(initial_eval, position_evaluator.MIN_EVAL)
+
+		board = Board("rb2r3/p3k1pp/1n1N1pn1/4p3/P4P2/4B1N1/qPPPP1PP/2K1RQ2 b - - 0 12")
+		evaluator = MovePositionEvaluator(board, turn)
+		move = chess.Move.from_uci("a2a1")
+		board.push(move)
+		eval_after_move = evaluator.evaluate_after_move()
+		self.assertEqual(eval_after_move, position_evaluator.MIN_EVAL)
+
 	def test_old_evaluator(self):
 		board = Board("rnbqkbnr/1p1ppppp/8/2p5/PpP5/8/3PPPPP/RNBQKBNR w KQkq - 0 4")
 		turn = chess.WHITE
