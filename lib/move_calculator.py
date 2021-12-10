@@ -3,6 +3,7 @@
 import time
 import math
 import signal
+import chess
 import minimax_alpha_beta
 import position_evaluator
 from board import Board
@@ -80,9 +81,13 @@ def calculate(board, max_think_time, max_depth=20, is_ponder=False):
 
     for depth in range(1, max_depth + 1):
 
+        move_filters = [is_soft_tactic, None]
+        if depth == 1:
+            move_filters = [None]
+        for move_filter in move_filters:
         #for move_filter in [is_soft_tactic, None]:
         #for move_filter in [is_soft_tactic, is_non_tactic]:
-        for move_filter in [None]:
+        #for move_filter in [None]:
 
             result, stop_search = pick_move(board, max_think_time, start_ts, depth,
                                             move_filter=move_filter)
@@ -128,7 +133,9 @@ def is_mating(evaluation: int, depth: int, move_filter) -> bool:
 def set_result(result) -> None:
     global move_result
     if move_result is None or move_result[1] is None or \
-        result[1] is not None and (result[2] > move_result[2] or
-                                   result[0] > move_result[0]):
+        result[1] is not None and result[1] != chess.Move.null():
+        # and \
+        #   (result[2] > move_result[2] or
+        #   result[0] > move_result[0]):
         move_result = result
     print("move_result =", move_result)

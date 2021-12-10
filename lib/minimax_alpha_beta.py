@@ -26,13 +26,13 @@ tt_hit_count = 0
 # Don't need to pass in alpha and beta like in minimax
 def minimax_helper(board, depth, forced_mate_depth: int=2,
 				num_captures: int=8, use_tt=False, sort_moves=False,
-				move_filter=None, extend_search: bool=True,
+				move_filter=None, move_filter_depth: int=1, extend_search: bool=True,
 				evaluate_position=position_evaluator.evaluate_position):
 	start = datetime.datetime.now()
 	turn = board.turn
 	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
 		evaluate_position, use_tt, sort_moves, move_filter=move_filter,
-		extend_search=extend_search,
+		move_filter_depth=move_filter_depth, extend_search=extend_search,
 		forced_mate_depth=forced_mate_depth, num_captures=num_captures)
 	print("depth =", depth)
 	print("extend search =", extend_search)
@@ -55,7 +55,7 @@ def minimax_helper(board, depth, forced_mate_depth: int=2,
 
 
 def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, sort_moves=False,
-		move_filter=None, depth_reached=0, extend_search: bool=True,
+		move_filter=None, move_filter_depth: int=1, depth_reached=0, extend_search: bool=True,
 		forced_mate_depth: int=2, num_captures: int=8):
 	"""Returns (evaluation, move list) or None if there is no move
 	alpha is the min possible value
@@ -84,8 +84,12 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 			tt_hit_count += 1
 			return tt_hit[1]
 	moves = list(board.legal_moves)
-	if depth == 1 and move_filter is not None:
+	if move_filter is not None and depth <= move_filter_depth:
 		moves = [move for move in moves if move_filter(board, move)]
+		if moves:
+			moves.append(chess.Move.null())
+		else:
+			moves = list(board.legal_moves)[:1]
 	if (sort_moves):
 		moves = sorted(moves, reverse = True, key = lambda move: get_move_value(board, turn, move, evaluate_position))
 	maximizing = board.turn == turn
@@ -94,7 +98,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 		for move in moves:
 			board.push(move)
 			evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_tt, sort_moves,
-								move_filter=move_filter, extend_search=extend_search,
+								move_filter=move_filter, move_filter_depth=move_filter_depth,
+								extend_search=extend_search,
 								num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 			board.pop()
 			if max_evaluation == None or evaluation[0] > max_evaluation[0]: # greater than so max_evaluation only gets replaced if evaluation is higher
@@ -116,7 +121,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 	for move in moves:
 		board.push(move)
 		evaluation = minimax(board, depth - 1, turn, alpha, beta, evaluate_position, use_tt, sort_moves,
-							move_filter=move_filter, extend_search=extend_search,
+							move_filter=move_filter, move_filter_depth=move_filter_depth,
+							extend_search=extend_search,
 							num_captures=num_captures, forced_mate_depth=forced_mate_depth)
 		board.pop()
 		if min_evaluation == None or evaluation[0] < min_evaluation[0]:
@@ -174,16 +180,19 @@ def init_counts():
 
 # Minimax with alpha beta pruning to some depth
 def pick_full_move(board, depth=3, forced_mate_depth=2, num_captures=8,
-				move_filter=None, extend_search: bool=True):
+				move_filter=None, move_filter_depth: int=1, extend_search: bool=True):
 	init_counts()
 	result = minimax_helper(board, depth, forced_mate_depth=forced_mate_depth,
 						num_captures=num_captures, move_filter=move_filter,
-						extend_search=extend_search)
+						move_filter_depth=move_filter_depth, extend_search=extend_search)
 	return result
 
 # Minimax with alpha beta pruning to some depth
-def pick_move(board, depth=3, move_filter=None):
-	return pick_full_move(board, depth, move_filter=move_filter)[1]
+def pick_move(board, depth=3, move_filter=None, move_filter_depth: int=1,
+			extend_search: bool=True):
+	return pick_full_move(board, depth, move_filter=move_filter,
+						move_filter_depth=move_filter_depth,
+						extend_search=extend_search)[1]
 
 # Sort moves to facilitate more pruning
 def pick_full_move_with_sort(board, depth=3):

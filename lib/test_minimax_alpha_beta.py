@@ -4,6 +4,7 @@ import chess_util
 import minimax_alpha_beta
 from board import Board
 import move_filter
+import move_calculator
 
 class TestMinimaxAlphaBeta(unittest.TestCase):
 
@@ -16,6 +17,13 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board = Board("r1bqkbnr/1p1np1pp/2P2p2/p7/P2PP3/8/1P3PPP/RNBQKBNR b KQkq - 0 6")
 		move = minimax_alpha_beta.pick_move(board, depth=1)
 		self.assertNotEqual(move, chess.Move.from_uci('g7g5'))
+
+	def test_avoid_mate2(self):
+		"""c4f7 blunders mate in 2
+		"""
+		board = Board("1r3r1k/p1ppB1p1/3n2Q1/8/2bp1P2/5R2/P5PP/7K b - - 1 25")
+		move = minimax_alpha_beta.pick_move(board, depth=1)
+		self.assertNotEqual(move, chess.Move.from_uci('c4f7'))
 
 	def test_getting_mated(self):
 		"""Even if the engine is getting mated, it should still return a move.
@@ -92,6 +100,20 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertNotEqual(move, chess.Move.from_uci("c3d3"))
 
+	# Don't go for draw if winning
+	def test_draw_by_rep_depth2(self):
+		"""Soft tactic should not skip over drawing move
+		"""
+		board = Board("4r1k1/1p4p1/2p2p1p/3n4/8/1r3PPP/4p3/R1R1B1K1 b - - 1 37")
+		board.push(chess.Move.from_uci("g8h8"))
+		board.push(chess.Move.from_uci("a1a2"))
+		board.push(chess.Move.from_uci("h8g8"))
+		board.push(chess.Move.from_uci("a2a1"))
+		board.push(chess.Move.from_uci("g8h8"))
+		board.push(chess.Move.from_uci("a1a2"))
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
+		self.assertNotEqual(move, chess.Move.from_uci("h8g8"))
+
 	# Threat to fork king and undefended knight with queen
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQkq - 1 15")
@@ -157,6 +179,23 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board.push(chess.Move.from_uci("g6h7"))
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertNotEqual(move, chess.Move.from_uci("b6c7"))
+
+	def test_endgame_pawn_push(self):
+		board = Board("1n6/1P6/7p/1N2k1p1/5pP1/2K5/8/8 b - - 0 50")
+		move = minimax_alpha_beta.pick_move(board, 3)
+		self.assertNotEqual(move, chess.Move.from_uci("h6h5"))
+
+	def test_bishop_trapped(self):
+		board = Board("rnbqk1nr/pppp1p1p/6p1/7b/8/7P/PPPPPPP1/RNBQKBNR b KQkq - 0 1")
+		move = minimax_alpha_beta.pick_move(board, 3, move_filter=move_filter.is_soft_tactic,
+										move_filter_depth=2)
+		self.assertIn(move, {chess.Move.from_uci("g6g5"), chess.Move.from_uci("f7f5")})
+
+	def test_free_pawn3(self):
+		board = Board("8/p7/8/1p5R/r2k1P1P/2p3P1/2K5/8 w - - 0 50")
+		move = minimax_alpha_beta.pick_move(board, 3, move_filter=move_filter.is_soft_tactic)
+		self.assertEqual(move, chess.Move.from_uci("h5b5"))
+
 
 
 if __name__ == '__main__':
