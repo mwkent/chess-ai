@@ -120,7 +120,7 @@ class TestSearchExtension(unittest.TestCase):
 		start_evaluation = 834
 		current_evaluation = 673
 		max_loss = 100
-		self.assertFalse(is_past_max_loss(board_turn, evaluating_turn,
+		self.assertTrue(is_past_max_loss(board_turn, evaluating_turn,
 										start_evaluation, current_evaluation, max_loss))
 
 	def test(self):
