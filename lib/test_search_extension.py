@@ -2,8 +2,10 @@ import unittest
 import chess
 from board import Board
 from typing import List
-from search_extension import get_potential_tactics_moves, search_helper, search_getting_mated
+from search_extension import get_potential_tactics_moves, search_helper, search_getting_mated, search, \
+	is_past_max_loss
 import search_extension
+from move_position_evaluator import MovePositionEvaluator
 
 
 class TestSearchExtension(unittest.TestCase):
@@ -103,6 +105,35 @@ class TestSearchExtension(unittest.TestCase):
 		turn = chess.BLACK
 		evaluation = search_getting_mated(board, turn, num_checks_left=1)
 		self.assertEqual(evaluation[0], search_extension.MAX_EVAL - 1)
+
+	def test_is_past_max_loss(self):
+		board_turn = chess.WHITE
+		evaluating_turn = chess.BLACK
+		start_evaluation = 400
+		current_evaluation = 400
+		max_loss = 100
+		self.assertFalse(is_past_max_loss(board_turn, evaluating_turn,
+										start_evaluation, current_evaluation, max_loss))
+
+		board_turn = chess.WHITE
+		evaluating_turn = chess.BLACK
+		start_evaluation = 834
+		current_evaluation = 673
+		max_loss = 100
+		self.assertFalse(is_past_max_loss(board_turn, evaluating_turn,
+										start_evaluation, current_evaluation, max_loss))
+
+	def test(self):
+		#board = Board("6k1/5p2/1p1r2pp/3p4/4p2q/1QP1N1b1/Kn1PB1R1/8 w - - 0 49")
+		#turn = chess.BLACK
+		#evaluation = search(board, turn)
+		#print(evaluation)
+
+		board = Board("6k1/5p2/1p1r2pp/3p4/2p1p2q/1PPnn1b1/KBNPB1R1/3Q4 w - - 0 47")
+		turn = chess.BLACK
+		#print(MovePositionEvaluator(board, turn).get_evaluation())
+		evaluation = search(board, turn)
+		print(evaluation)
 
 if __name__ == '__main__':
 	unittest.main()

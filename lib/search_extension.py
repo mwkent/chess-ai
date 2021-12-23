@@ -243,6 +243,12 @@ def get_mvv_lva_value(board, move):
     return value
 
 
+def is_past_max_loss(board_turn: chess.Color, evaluating_turn: chess.Color, start_evaluation: float,
+                     current_evaluation: float, max_loss: int):
+    return (evaluating_turn != board_turn and start_evaluation - current_evaluation >= max_loss) or \
+        (evaluating_turn == board_turn and start_evaluation - current_evaluation <= max_loss * -1)
+
+
 def minimax(board: Board, turn: chess.Color, maximizing: bool, return_best: bool,
             move: chess.Move, old_evaluation: int,
             move_position_evaluator: MovePositionEvaluator,
@@ -250,7 +256,7 @@ def minimax(board: Board, turn: chess.Color, maximizing: bool, return_best: bool
             min_or_max_eval: Tuple[int, List[chess.Move]],
             num_checks_remaining: int=1,
             num_pawn_promotion_remaining: int=0, num_captures_remaining: int=2,
-            num_attacks_and_defends_remaining: int=0) \
+            num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
            -> Tuple[int, List[chess.Move]]:
 
     # Make move and evaluate
@@ -259,7 +265,8 @@ def minimax(board: Board, turn: chess.Color, maximizing: bool, return_best: bool
                         move_position_evaluator,
                         start_evaluation, max_loss,
                         num_checks_remaining, num_pawn_promotion_remaining,
-                        num_captures_remaining, num_attacks_and_defends_remaining)
+                        num_captures_remaining, num_attacks_and_defends_remaining,
+                        num_moves_remaining)
     board.pop()
     move_position_evaluator.undo_move()
     
@@ -279,7 +286,7 @@ def search_helper(board: Board, turn: chess.Color,
                   start_evaluation: int=None, max_loss: int=100,
                   num_checks_remaining: int=1,
                   num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
-                  num_attacks_and_defends_remaining: int=0) \
+                  num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
                   -> Tuple[int, List[chess.Move]]:
     """Returns the evaluation and the list of best moves that were calculated
     """
@@ -293,18 +300,17 @@ def search_helper(board: Board, turn: chess.Color,
     # min_or_max_eval = position_evaluator.evaluate_position_after_capture(board, turn, old_evaluation), []
     if start_evaluation is None:
         start_evaluation = min_or_max_eval[0]
-    if (turn != board.turn and start_evaluation - min_or_max_eval[0] >= max_loss) or \
-        (turn == board.turn and start_evaluation - min_or_max_eval[0] <= max_loss * -1):
-        # return min_or_max_eval
-        num_checks_remaining, num_pawn_promotion_remaining,
-        num_attacks_and_defends_remaining = 0
-        num_captures_remaining = min(1, num_captures_remaining)
+
+    if is_past_max_loss(board.turn, turn, start_evaluation, min_or_max_eval[0], max_loss):
+        num_moves_remaining = 1
     
-    # Don't end search_helper when either player is in check
-    if num_checks_remaining == 0 and num_pawn_promotion_remaining == 0 and \
-        num_captures_remaining == 0 and num_attacks_and_defends_remaining == 0 and \
-        not board.is_check() or board.is_checkmate() or board.is_stalemate() or board.is_insufficient_material():
-        
+    # Don't end search_helper when either player is in check?
+    # If you don't end when in check, max loss may be messed up because moves could be extended by 2
+    if num_moves_remaining == 0 or \
+        (num_checks_remaining <= 0 and num_pawn_promotion_remaining <= 0 and \
+        num_captures_remaining <= 0 and num_attacks_and_defends_remaining <= 0) \
+        or board.is_checkmate() or board.is_stalemate() or board.is_insufficient_material():
+        # and not board.is_check()
         #print()
         #print(board.move_stack)
         #print(position_evaluator.evaluate_position(board, turn, extend=False))
@@ -324,15 +330,14 @@ def search_helper(board: Board, turn: chess.Color,
                                       move_position_evaluator,
                                       start_evaluation, max_loss, min_or_max_eval,
                                       num_checks_remaining, num_pawn_promotion_remaining,
-                                      num_captures_remaining, num_attacks_and_defends_remaining)
+                                      num_captures_remaining, num_attacks_and_defends_remaining,
+                                      num_moves_remaining-1)
     # Not in check
     else:
         moves = list(board.legal_moves)
         if False:
             moves = sorted(moves, reverse = True, key = lambda move: get_mvv_lva_value(board, move))
         for move in moves:
-            if move == chess.Move.from_uci("g1f2") and not board.move_stack:
-                x = 1
             # Todo: Check if min_or_max_eval is max or min eval to cut short
             if num_checks_remaining > 0 and board.gives_check(move):
                 min_or_max_eval = minimax(board, turn, maximizing, return_best,
@@ -340,7 +345,8 @@ def search_helper(board: Board, turn: chess.Color,
                                           move_position_evaluator,
                                           start_evaluation, max_loss, min_or_max_eval,
                                           num_checks_remaining-1, num_pawn_promotion_remaining,
-                                          num_captures_remaining, num_attacks_and_defends_remaining)
+                                          num_captures_remaining, num_attacks_and_defends_remaining,
+                                          num_moves_remaining-1)
             # Decrease num checks as well to reduce searching checks in later layers
             elif num_captures_remaining > 0 and is_capture(board, move):
                 min_or_max_eval = minimax(board, turn, maximizing, return_best,
@@ -348,21 +354,24 @@ def search_helper(board: Board, turn: chess.Color,
                                           move_position_evaluator,
                                           start_evaluation, max_loss, min_or_max_eval,
                                           num_checks_remaining-1, num_pawn_promotion_remaining,
-                                          num_captures_remaining-1, num_attacks_and_defends_remaining)
+                                          num_captures_remaining-1, num_attacks_and_defends_remaining,
+                                          num_moves_remaining-1)
             elif num_pawn_promotion_remaining > 0 and is_pawn_promotion_move(move):
                 min_or_max_eval = minimax(board, turn, maximizing, return_best,
                                           move, old_evaluation,
                                           move_position_evaluator,
                                           start_evaluation, max_loss, min_or_max_eval,
                                           num_checks_remaining, num_pawn_promotion_remaining-1,
-                                          num_captures_remaining, num_attacks_and_defends_remaining)
+                                          num_captures_remaining, num_attacks_and_defends_remaining,
+                                          num_moves_remaining-1)
             elif num_attacks_and_defends_remaining > 0 and is_attack_or_defend(board, move):
                 min_or_max_eval = minimax(board, turn, maximizing, return_best,
                                           move, old_evaluation,
                                           move_position_evaluator,
                                           start_evaluation, max_loss, min_or_max_eval,
                                           num_checks_remaining, num_pawn_promotion_remaining,
-                                          num_captures_remaining, num_attacks_and_defends_remaining-1)
+                                          num_captures_remaining, num_attacks_and_defends_remaining-1,
+                                          num_moves_remaining-1)
 
     return min_or_max_eval
 
