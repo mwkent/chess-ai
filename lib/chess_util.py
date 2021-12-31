@@ -140,6 +140,14 @@ def get_adjacent_squares(square):
 def get_adjusted_rank(square, color):
 	return chess.square_rank(square) if color else MAX_RANK - chess.square_rank(square)
 
+
+def between_inclusive(a: chess.Square, b: chess.Square) -> chess.SquareSet:
+	"""Returns the set of squares between a and b, including a and b
+	"""
+	bb = chess.BB_RAYS[a][b] & ((chess.BB_ALL << a) ^ (chess.BB_ALL << (b+1)))
+	return chess.SquareSet(bb)
+
+
 # How many minor pieces (e.g. bishops and knights) does color have?
 def get_num_minor_pieces(board, color):
 	return len(board.pieces(chess.BISHOP, color)) + len(board.pieces(chess.KNIGHT, color))
@@ -420,6 +428,52 @@ def get_all_attack_higher_value(board: Board) -> Dict[chess.Color, chess.SquareS
 					result[color].add(piece)
 	return result
 	
+
+def is_soft_free_to_take(board, piece):
+	"""Can piece maybe be taken? All attackers count,
+	any pinned defenders don't count as defenders.
+	"""
+	en_passant_free_to_take = False
+	if board.piece_type_at(piece) == chess.PAWN and board.ep_square is not None \
+		and board.ep_square == get_prior_pawn_square(piece, board.color_at(piece)):
+		en_passant_free_to_take = is_soft_free_to_take_helper(board, piece, board.ep_square)
+	return en_passant_free_to_take or is_soft_free_to_take_helper(board, piece)
+
+
+def is_soft_free_to_take_helper(board: Board, piece: chess.Square, attacked_square: chess.Square=None) -> bool:
+	"""Checks to see if `piece` can maybe be taken.
+	`attacked_square` is needed to check for en passant.
+	`attacked_square` would be the square where the en passant capture would take place,
+	and `piece` would be the pawn being captured by en passant.
+	"""
+	if attacked_square is None:
+		attacked_square = piece
+	first_attackers, second_attackers, first_defenders, second_defenders = \
+		board.get_soft_attackers_and_defenders(attacked_square, board.color_at(piece))
+	num_attackers = len(first_attackers) + len(second_attackers)
+	num_defenders = len(first_defenders) + len(second_defenders)
+	if len(first_attackers) >= 2:
+		all_defenders = first_defenders + second_defenders
+		lowest_two_attacker_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(first_attackers[0])] + \
+			PIECE_TYPES_TO_VALUES[board.piece_type_at(first_attackers[1])]
+		if all(PIECE_TYPES_TO_VALUES[board.piece_type_at(defender)] > lowest_two_attacker_value for defender in all_defenders):
+			return True
+	if num_attackers > num_defenders:
+		if num_defenders == 0:
+			return True
+		if not first_attackers:
+			return False
+		if not first_defenders:
+			return True
+		min_value_attacker = first_attackers[0]
+		min_value_defender = first_defenders[0]
+		if num_defenders == 1 and board.piece_type_at(min_value_defender) == chess.KING:
+			return True
+		if PIECE_TYPES_TO_VALUES[board.piece_type_at(min_value_attacker)] < \
+			PIECE_TYPES_TO_VALUES[board.piece_type_at(piece)] + PIECE_TYPES_TO_VALUES[board.piece_type_at(min_value_defender)]:
+			return True
+	return False
+
 
 # Can you take piece and win material
 def is_free_to_take_this_turn(board, piece):

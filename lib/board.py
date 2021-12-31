@@ -2,7 +2,7 @@ import chess
 import chess_util
 from typing import List, Set
 from constants import PIECE_TYPES_TO_ROUGH_VALUES
-from pickle import NONE
+from pickle import NONE, FALSE, TRUE
 
 PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305, chess.BISHOP: 330, 
                          chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
@@ -14,24 +14,28 @@ class Board(chess.Board, object):
     def __init__(self, fen=chess.STARTING_FEN, chess960=False):
         self._phase = {}
         self._squares_to_attackers_and_defenders = {}
+        self._squares_to_soft_attackers_and_defenders = {}
         super(Board, self).__init__(fen=fen, chess960=chess960)
 
     def copy(self):
         board = super().copy()
         board._phase = self._phase.copy()
         board._squares_to_attackers_and_defenders = self._squares_to_attackers_and_defenders.copy()
+        board._squares_to_soft_attackers_and_defenders = self._squares_to_soft_attackers_and_defenders.copy()
         return board
 
     # Todo: Update phase rather than reset it
     def push(self, move):
         self._phase.clear()
         self._squares_to_attackers_and_defenders.clear()
+        self._squares_to_soft_attackers_and_defenders.clear()
         return super().push(move)
 
     # Todo: Update phase rather than reset it
     def pop(self):
         self._phase.clear()
         self._squares_to_attackers_and_defenders.clear()
+        self._squares_to_soft_attackers_and_defenders.clear()
         return super().pop()
     
     def get_all_pieces(self) -> List[chess.Square]:
@@ -142,7 +146,84 @@ class Board(chess.Board, object):
         attackers = [attacker for attacker in self.attackers(not defend_color, square) if chess_util.can_piece_capture(self, attacker, square)]
         defenders = [attacker for attacker in self.attackers(defend_color, square) if chess_util.can_piece_capture(self, attacker, square)]
         return attackers, defenders
+
+    def is_soft_pinned(self, piece: chess.Square):
+        attack_color = not self.color_at(piece)
+        return any(self.is_attacker_soft_pinning(attacker, piece) for attacker in self.attackers(attack_color, piece))
+
+    def is_attacker_soft_pinning(self, attacker: chess.Square, pinned_piece: chess.Square):
+        """Is `pinned_piece` pinned to piece that is undefended or stronger than attacker?
+        """
+        if self.piece_type_at(attacker) not in {chess.BISHOP, chess.ROOK, chess.QUEEN}:
+            # only bishops, rooks, and queens can pin a piece
+            return False
+        last_piece = None
+        seen_attacker = False
+        seen_pinned_piece = False
+        for ray_square in chess.SquareSet.ray(attacker, pinned_piece):
+            if ray_square == pinned_piece and not seen_attacker:
+                # already passed the piece that pinned_piece is pinned to
+                break
+            elif ray_square == pinned_piece and seen_attacker:
+                # the piece that pinned_piece is pinned to will be the next piece
+                seen_pinned_piece = True
+            elif self.piece_type_at(ray_square) is not None and self.color_at(ray_square) == self.color_at(pinned_piece) and \
+                ray_square != attacker and ray_square != pinned_piece:
+                last_piece = ray_square
+                if seen_attacker and seen_pinned_piece:
+                    break
+            elif ray_square == attacker:
+                seen_attacker = True
+        return last_piece is not None and (not self.has_defender(last_piece) or
+                                           PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(attacker)] <
+                                           PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(last_piece)])
+
+    def has_defender(self, piece: chess.Square):
+        defend_color = self.color_at(piece)
+        return any(chess_util.can_piece_capture(self, defender, piece) for defender in self.attackers(defend_color, piece))
+
+    def get_soft_first_attackers(self, square: chess.Square, defend_color: chess.Color) -> List[chess.Square]:
+        """Get first attackers - the pieces of color that can move to square first
+        Batteries not included, kings currently included
+        """
+        if defend_color is None:
+            defend_color = self.color_at(square)
+        attackers = [attacker for attacker in self.attackers(not defend_color, square)]
+        return attackers
+
+    def get_soft_first_defenders(self, square: chess.Square, defend_color: chess.Color) -> List[chess.Square]:
+        """Get first defenders
+        Soft pinned pieces are not included
+        Batteries not included, kings currently included
+        """
+        if defend_color is None:
+            defend_color = self.color_at(square)
+        defenders = [defender for defender in self.attackers(defend_color, square) if not self.is_soft_pinned(defender)]
+        return defenders
     
+    def get_soft_second_attackers(self, square: chess.Square, first_attackers,
+                                  first_defenders, defend_color: chess.Color):
+        """Get second attackers - the attackers who can't move to square first
+        i.e. pieces that may be in a battery
+        """
+        if defend_color is None:
+            defend_color = self.color_at(square)
+        first_attackers_and_defenders = first_attackers + first_defenders
+        second_attackers = self.get_battery_attackers(square, not defend_color, first_attackers_and_defenders)
+        return second_attackers
+
+    def get_soft_second_defenders(self, square: chess.Square, first_attackers,
+                                  first_defenders, defend_color: chess.Color):
+        """Get second defenders - the defenders who can't move to square first
+        i.e. pieces that may be in a battery
+        """
+        if defend_color is None:
+            defend_color = self.color_at(square)
+        first_attackers_and_defenders = first_attackers + first_defenders
+        second_defenders = [defender for defender in self.get_battery_attackers(square, defend_color, first_attackers_and_defenders)
+                            if not self.is_soft_pinned(defender)]
+        return second_defenders
+
     # Get second attackers and defenders - the attackers and defenders who can't move to square first
     # i.e. pieces that may be in a battery or are pinned
     # Technically, pinned pieces could be first attackers or defenders
@@ -163,6 +244,25 @@ class Board(chess.Board, object):
         second_attackers += self.get_battery_attackers(square, not defend_color, pinned_attackers)
         second_defenders += self.get_battery_attackers(square, defend_color, pinned_defenders)
         return second_attackers, second_defenders
+
+    def get_soft_attackers_and_defenders(self, piece: chess.Square, piece_color: chess.Color) -> \
+        (List[chess.Square], List[chess.Square], List[chess.Square], List[chess.Square]):
+        """Soft attackers are all attackers.
+        Soft defenders are only defenders that are not soft pinned.
+        """
+        if piece not in self._squares_to_soft_attackers_and_defenders:
+            if piece_color is None:
+                piece_color = self.color_at(piece)
+            first_attackers = self.get_soft_first_attackers(piece, piece_color)
+            first_defenders = self.get_soft_first_defenders(piece, piece_color)
+            # Sort to know which are the least valued attackers and defenders
+            first_attackers.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[self.piece_type_at(piece)])
+            first_defenders.sort(key=lambda piece:PIECE_TYPES_TO_VALUES[self.piece_type_at(piece)])
+            second_attackers = self.get_soft_second_attackers(piece, first_attackers, first_defenders, piece_color)
+            second_defenders = self.get_soft_second_defenders(piece, first_attackers, first_defenders, piece_color)
+            self._squares_to_soft_attackers_and_defenders[piece] = \
+                first_attackers, second_attackers, first_defenders, second_defenders
+        return self._squares_to_soft_attackers_and_defenders[piece]
 
     def get_attackers_and_defenders(self, piece: chess.Square, piece_color: chess.Color=None) -> \
         (List[chess.Square], List[chess.Square], List[chess.Square], List[chess.Square]):

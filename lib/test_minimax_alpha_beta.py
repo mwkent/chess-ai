@@ -5,6 +5,8 @@ import minimax_alpha_beta
 from board import Board
 import move_filter
 import move_calculator
+from uci import position
+import position_evaluator
 
 class TestMinimaxAlphaBeta(unittest.TestCase):
 
@@ -195,6 +197,31 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board = Board("8/p7/8/1p5R/r2k1P1P/2p3P1/2K5/8 w - - 0 50")
 		move = minimax_alpha_beta.pick_move(board, 3, move_filter=move_filter.is_soft_tactic)
 		self.assertEqual(move, chess.Move.from_uci("h5b5"))
+
+	def test_knight_sac(self):
+		board = Board("6k1/5p2/1p1r2pp/3p1n2/2p1p2q/1PPnP1b1/KBNPB1R1/3Q4 b - - 1 46")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertNotEqual(move, chess.Move.from_uci("f5e3"))
+
+	def test_save_knight(self):
+		board = Board("r1b1kb1r/p2npppp/5n2/q1pP4/1p1PP3/2N2N2/PP1Q1PPP/R1B1KB1R w KQkq - 0 8")
+		move = minimax_alpha_beta.pick_move(board, 1, extend_search=False)
+		board.push(chess.Move.from_uci("c3d1"))
+		turn = chess.WHITE
+		print(position_evaluator.evaluate_position(board, turn, check_tactics=True, extend=True))
+		self.assertIn(move, {chess.Move.from_uci("c3b1"), chess.Move.from_uci("c3d1"),
+							chess.Move.from_uci("c3e2")})
+
+	def test_avoid_fork(self):
+		board = Board("r1bq1rk1/ppp1ppbp/2n3p1/3p4/4n3/1P2P1P1/PBPP1PBP/RNQ1K1NR b KQ - 3 8")
+		#move = minimax_alpha_beta.pick_move(board, 1, extend_search=False)
+		move = move_calculator.calculate_with_thread(board, 20)
+		self.assertNotEqual(move, chess.Move.from_uci("c8g4"))
+
+	def test_pin_to_queen(self):
+		board = Board("8/3rkp1p/pr2q1p1/Rp1pPn2/3Pb3/1BP5/Q1PBR1PP/6K1 b - - 11 23")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("e6c6"))
 
 
 

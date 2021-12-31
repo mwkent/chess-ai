@@ -92,6 +92,50 @@ class TestBoard(unittest.TestCase):
 		rook_to_square = chess.F8
 		self.assertTrue(board.get_castling_rook(move), (rook_from_square, rook_to_square))
 
+	def test_is_soft_pinned(self):
+		board = Board("1k4n1/1r2qb2/4R1p1/2r5/1B1PN3/bN4n1/6R1/1K6 w - - 0 1")
+		piece = chess.C5
+		self.assertTrue(board.is_soft_pinned(piece))
+
+		piece = chess.E6
+		self.assertTrue(board.is_soft_pinned(piece))
+
+		piece = chess.B4
+		self.assertTrue(board.is_soft_pinned(piece))
+
+		piece = chess.G3
+		self.assertFalse(board.is_soft_pinned(piece))
+
+		board = Board("5k2/3r1p1p/pr2q1p1/Rp1pPn2/3Pb3/1BP5/Q1PBR1PP/6K1 w - - 12 24")
+		piece = chess.D5
+		self.assertTrue(board.is_soft_pinned(piece))
+
+	def test_is_attacker_soft_pinning(self):
+		board = Board("1k4n1/1r2qb2/4R1p1/2r5/1B1PN3/bN4n1/6R1/1K6 w - - 0 1")
+		attacker = chess.B4
+		pinned_piece = chess.C5
+		self.assertTrue(board.is_attacker_soft_pinning(attacker, pinned_piece))
+
+		attacker = chess.F7
+		pinned_piece = chess.E6
+		self.assertTrue(board.is_attacker_soft_pinning(attacker, pinned_piece))
+
+		attacker = chess.A3
+		pinned_piece = chess.B4
+		self.assertFalse(board.is_attacker_soft_pinning(attacker, pinned_piece))
+
+		attacker = chess.G2
+		pinned_piece = chess.G3
+		self.assertFalse(board.is_attacker_soft_pinning(attacker, pinned_piece))
+
+	def test_has_defender(self):
+		board = Board("1k4n1/4qb2/4R3/2r5/1B1PN3/bN6/2R5/1K6 w - - 0 1")
+		piece = chess.B4
+		self.assertFalse(board.has_defender(piece))
+
+		piece = chess.C5
+		self.assertTrue(board.has_defender(piece))
+
 	def test_get_attackers_and_defenders(self):
 		board = Board("rnbqk1nr/pppp1ppp/4p3/7Q/3P4/b1P1P3/PP3PPP/RNB1KBNR w KQkq - 3 5")
 		free_bishop = chess.A3
@@ -119,6 +163,36 @@ class TestBoard(unittest.TestCase):
 		first_defenders = [chess.A1]
 		second_defenders = [chess.C3]
 		self.assertEqual(board.get_attackers_and_defenders(defended_pawn), \
+			(first_attackers, second_attackers, first_defenders, second_defenders))
+
+	def test_get_soft_attackers_and_defenders(self):
+		board = Board("rnbqk1nr/pppp1ppp/4p3/7Q/3P4/b1P1P3/PP3PPP/RNB1KBNR w KQkq - 3 5")
+		free_bishop = chess.A3
+		first_attackers = [chess.B2, chess.B1]
+		second_attackers = [chess.C1]
+		first_defenders = []
+		second_defenders = []
+		self.assertEqual(board.get_soft_attackers_and_defenders(free_bishop), \
+			(first_attackers, second_attackers, first_defenders, second_defenders))
+		# Test cached value
+		self.assertEqual(board.get_soft_attackers_and_defenders(free_bishop), \
+			(first_attackers, second_attackers, first_defenders, second_defenders))
+
+		defended_pawn = chess.F7
+		first_attackers = [chess.H5]
+		second_attackers = []
+		first_defenders = [chess.E8]
+		second_defenders = []
+		self.assertEqual(board.get_soft_attackers_and_defenders(defended_pawn), \
+			(first_attackers, second_attackers, first_defenders, second_defenders))
+
+		board = Board("rn2kb1r/pp2pppp/2p1b3/q7/3P4/2N5/PPP2PPP/R1BQK1NR b KQkq - 2 8")
+		defended_pawn = chess.A2
+		first_attackers = [chess.E6, chess.A5]
+		second_attackers = []
+		first_defenders = [chess.A1]
+		second_defenders = []
+		self.assertEqual(board.get_soft_attackers_and_defenders(defended_pawn), \
 			(first_attackers, second_attackers, first_defenders, second_defenders))
 
 	def test_battery_through_opponents_piece(self):

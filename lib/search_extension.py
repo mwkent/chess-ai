@@ -129,11 +129,10 @@ def is_higher_value_trade(board: Board, move: chess.Move) -> bool:
 
 def is_hanging_piece_capture(board: Board, move: chess.Move) -> bool:
     """`move` is taking a hanging piece
-    Is not considering en passant
     """
-    if board.piece_at(move.to_square) is None:
+    if board.piece_at(move.to_square) is None and not board.is_en_passant(move):
         return False
-    return chess_util.is_free_to_take(board, move.to_square)
+    return chess_util.is_soft_free_to_take(board, move.to_square)
 
 
 def is_capture(board: Board, move: chess.Move) -> bool:

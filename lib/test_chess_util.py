@@ -98,6 +98,18 @@ class TestChessUtil(unittest.TestCase):
 		adjusted_rank = chess_util.get_adjusted_rank(square, color)
 		self.assertEqual(adjusted_rank, 3)
 
+	def test_between_inclusive(self):
+		result = chess.SquareSet([chess.C5, chess.D6, chess.E7, chess.F8])
+		self.assertEqual(result, chess_util.between_inclusive(chess.C5, chess.F8))
+
+		result = chess.SquareSet([chess.A1, chess.B1, chess.C1, chess.D1,
+								chess.E1, chess.F1, chess.G1, chess.H1])
+		self.assertEqual(result, chess_util.between_inclusive(chess.A1, chess.H1))
+
+		result = chess.SquareSet([chess.A8, chess.B8, chess.C8, chess.D8,
+								chess.E8, chess.F8, chess.G8, chess.H8])
+		self.assertEqual(result, chess_util.between_inclusive(chess.A8, chess.H8))
+
 	def test_get_num_minor_pieces(self):
 		board = Board()
 		self.assertEqual(chess_util.get_num_minor_pieces(board, chess.WHITE), 4)
@@ -283,6 +295,16 @@ class TestChessUtil(unittest.TestCase):
 		second_defenders = [chess.E8]
 		self.assertEqual(chess_util.get_second_attackers_and_defenders(board, chess.E5, first_attackers, first_defenders), \
 			(second_attackers, second_defenders))
+
+	def test_is_soft_free_to_take(self):
+		# Pawn can be taken with en passant
+		board = Board("8/pR6/1p2k2p/6pP/6P1/2P5/r4PK1/8 w - g6 0 40")
+		pawn = chess.G5
+		self.assertTrue(chess_util.is_soft_free_to_take(board, pawn))
+
+		board = Board("5k2/3r1p1p/pr2q1p1/Rp1pPn2/3Pb3/1BP5/Q1PBR1PP/6K1 w - - 12 24")
+		bishop = chess.E4
+		self.assertTrue(chess_util.is_soft_free_to_take(board, bishop))
 
 	def test_is_free_to_take(self):
 		# Pawn can be taken with en passant
