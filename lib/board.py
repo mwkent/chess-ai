@@ -245,7 +245,7 @@ class Board(chess.Board, object):
         second_defenders += self.get_battery_attackers(square, defend_color, pinned_defenders)
         return second_attackers, second_defenders
 
-    def get_soft_attackers_and_defenders(self, piece: chess.Square, piece_color: chess.Color) -> \
+    def get_soft_attackers_and_defenders(self, piece: chess.Square, piece_color: chess.Color=None) -> \
         (List[chess.Square], List[chess.Square], List[chess.Square], List[chess.Square]):
         """Soft attackers are all attackers.
         Soft defenders are only defenders that are not soft pinned.
