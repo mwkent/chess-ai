@@ -1,8 +1,13 @@
-# Handles calculating how much time the engine can think for
+""""Handles calculating how much time the engine can think for
+"""
 
-# Returns the max amount of time the engine can think for in seconds
-# Parameters are passed in milliseconds
-def get_max_think_time(board, white_time, white_increment, black_time, black_increment):
+from board import Board
+
+def get_max_think_time(board: Board, white_time: int, white_increment: int,
+					black_time: int, black_increment: int) -> float:
+	"""Returns the max amount of time the engine can think for in seconds
+	Parameters are passed in milliseconds
+	"""
 	player_time = white_time
 	player_increment = white_increment
 	if not board.turn:
@@ -14,7 +19,7 @@ def get_max_think_time(board, white_time, white_increment, black_time, black_inc
 	player_increment /= 1000.0
 
 	# What is the most number of moves a game will take, roughly
-	max_moves_in_game = 100
+	max_moves_in_game = 80
 	min_moves_left = 20
 	num_remaining_moves = max(max_moves_in_game - board.fullmove_number, min_moves_left)
 	total_time_to_complete_game = player_time + num_remaining_moves * player_increment
