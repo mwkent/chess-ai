@@ -235,6 +235,14 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
 		self.assertEqual(move, chess.Move.from_uci("h3h2"))
 
+	def test_soft_tactic_wont_force_blunder(self):
+		"""Null move should be an option even if there are no soft tactic moves
+		This test may change if is_soft_tactic expands
+		"""
+		board = Board("8/2p1nk2/1p6/p4p2/8/P1P5/5N2/5N1K w - - 1 59")
+		move = minimax_alpha_beta.pick_move(board, 1, move_filter=move_filter.is_soft_tactic)
+		self.assertEqual(move, chess.Move.null())
+
 
 
 if __name__ == '__main__':

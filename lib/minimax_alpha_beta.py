@@ -86,10 +86,7 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 	moves = list(board.legal_moves)
 	if move_filter is not None and depth <= move_filter_depth:
 		moves = [move for move in moves if move_filter(board, move)]
-		if moves:
-			moves.append(chess.Move.null())
-		else:
-			moves = list(board.legal_moves)[:1]
+		moves.append(chess.Move.null())
 	if (sort_moves):
 		moves = sorted(moves, reverse = True, key = lambda move: get_move_value(board, turn, move, evaluate_position))
 	maximizing = board.turn == turn
