@@ -358,11 +358,12 @@ def get_rank_pawn_eval(pawns, turn):
 def get_adjusted_pawn_rank(pawn, color):
     return chess_util.get_adjusted_rank(pawn, color) - 1
 
-# Can the knight catch the pawn before it promotes?
-# This function is inexact because returning True does not guarantee the knight can catch the pawn but False guarantees the pawn cannot be caught
-
 
 def can_knight_catch_pawn(board, knight, pawn):
+    """Can the knight catch the pawn before it promotes?
+    This function is inexact because returning True does not guarantee the
+    knight can catch the pawn but False guarantees the pawn cannot be caught
+    """
     pawn_color = board.color_at(pawn)
     color_rank_modifier = 1 if pawn_color else -1
     promotion_rank = 7 if pawn_color else 0
@@ -374,7 +375,7 @@ def can_knight_catch_pawn(board, knight, pawn):
     if board.turn == pawn_color:
         pawn_rank += color_rank_modifier
     # +2 because knight gets one time for initial position and one time after pawn promotes
-    for _ in range(promotion_rank - pawn_rank + 2):
+    for _ in range(abs(promotion_rank - pawn_rank) + 2):
         rank_diff = abs(promotion_rank - knight_rank)
         file_diff = abs(promotion_file - knight_file)
         if rank_diff == 0 and file_diff == 0:

@@ -223,6 +223,18 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertEqual(move, chess.Move.from_uci("e6c6"))
 
+	def test_avoid_pawn_fork(self):
+		"""Avoid pawn forking knight and bishop
+		"""
+		board = Board("2b2rk1/3q1nbp/2ppppp1/8/PR1PB2Q/2N1P1P1/1PPN1P1P/6K1 w - - 6 64")
+		move = minimax_alpha_beta.pick_move(board, 2)
+		self.assertNotEqual(move, chess.Move.from_uci("d2c4"))
+
+	def test_save_pawn(self):
+		board = Board("6k1/2p1np2/1p1b4/p5p1/8/P1P2P1p/1P2KN2/5N2 b - - 3 52")
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
+		self.assertEqual(move, chess.Move.from_uci("h3h2"))
+
 
 
 if __name__ == '__main__':

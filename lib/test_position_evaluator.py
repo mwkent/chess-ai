@@ -361,6 +361,14 @@ class TestPositionEvaluator(unittest.TestCase):
 		knight = chess.A1
 		self.assertTrue(position_evaluator.can_knight_catch_pawn(board, knight, pawn))
 
+		board = Board("6k1/2p1np2/1p1b4/p7/6P1/P1P4p/1P2KN2/5N2 b - - 0 53")
+		pawn = chess.H3
+		knight = chess.F2
+		self.assertTrue(position_evaluator.can_knight_catch_pawn(board, knight, pawn))
+
+		knight = chess.F1
+		self.assertTrue(position_evaluator.can_knight_catch_pawn(board, knight, pawn))
+
 	def test_is_pawn_promoting(self):
 		board = Board("8/8/1ppp4/6P1/k7/8/8/5K2 w - - 0 1")
 		pawn = chess.G5
