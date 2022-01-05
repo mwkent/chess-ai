@@ -80,6 +80,7 @@ PAWN_DEFENDING_BONUS = 10
 BLOCKADED_PAWN_PENALTY = -5
 ROOK_BEHIND_PAWN_BONUS = 15
 ROOK_BEHIND_PAWN_PENALTY = -15
+PAWN_SOFT_PINNED_PENALTY = -5
 
 
 # Knight
@@ -87,6 +88,7 @@ KNIGHT_RANK_EVAL = [[0, 0], [5, 0], [10, 0], [
     15, 0], [30, 0], [50, 0], [40, 0], [20, 0]]
 KICK_KNIGHT_PENALTY = [-30, -10]
 KNIGHT_CONTROLLED_PENALTY = -1
+KNIGHT_SOFT_PINNED_PENALTY = -10
 
 
 # Bishop
@@ -96,6 +98,7 @@ BISHOP_BATTERY_BONUS = 5
 # Long diagonal has some potential
 LONG_DIAGONAL_BONUS = [2*ATTACK_VALUE, 0]
 BISHOP_BLOCKED_PENALTY = -10
+BISHOP_SOFT_PINNED_PENALTY = -10
 
 
 # Knight and Bishop
@@ -116,6 +119,7 @@ ROOK_ON_OPEN_FILE_BONUS = [10, 0]
 ROOK_ON_HALF_OPEN_FILE_BONUS = [5, 0]
 ROOK_TOO_AGGRESSIVE_PENALTY = -10
 ROOK_ALIGNED_PENALTY = -15
+ROOK_SOFT_PINNED_PENALTY = -14
 
 ROOK_SQUARES_TO_ATTACKING_BONUS = dict.fromkeys(CENTER, [4, 0])
 ROOK_SQUARES_TO_ATTACKING_BONUS.update(dict.fromkeys(SECOND_RING, [2, 0]))
@@ -134,6 +138,7 @@ QUEEN_ATTACK_VALUE = .2
 DEFENDED_QUEEN_BONUS = 1
 # If the queen is aligned with the opponent's bishop or rook
 QUEEN_ALIGNED_PENALTY = 10
+QUEEN_SOFT_PINNED_PENALTY = -25
 
 
 # King
@@ -484,6 +489,8 @@ def get_pawn_value(board, turn, pawn, free_to_take=None):
         evaluation += get_center_pawn_eval(pawn)
         evaluation += get_isolated_pawn_penalty(pawns, pawn)
         evaluation += get_pressure_penalty(board, pawn)
+        if board.is_soft_pinned(pawn):
+            evaluation += PAWN_SOFT_PINNED_PENALTY
     return evaluation
     
 
@@ -589,6 +596,8 @@ def get_knight_value(board, turn, knight, free_to_take=None, free_to_trade=None,
             evaluation += len(board.attacks(knight)) * ATTACK_VALUE
             evaluation += get_eval(board, turn,
                                    get_attacking_bonus(board, turn, knight))
+        if not board.is_pinned(turn, knight) and board.is_soft_pinned(knight):
+            evaluation += KNIGHT_SOFT_PINNED_PENALTY
         # I don't think this is needed anymore with attacking_bonus
         #value += get_eval(board, turn, get_knight_rank_eval(knight, turn))
         evaluation += get_defended_bonus(board, knight)
@@ -674,8 +683,10 @@ def get_bishop_value(board, turn, bishop, free_to_take=None, free_to_trade=None,
                                    get_attacking_bonus(board, turn, bishop))
             evaluation += get_eval(board, turn,
                                    get_long_diagonal_bonus(bishop))
+        if not chess_util.is_bishop_pinned(board, bishop, turn) and board.is_soft_pinned(bishop):
+            evaluation += BISHOP_SOFT_PINNED_PENALTY
         evaluation += get_defended_bonus(board, bishop)
-        evaluation += get_bishop_battery_bonus(board, bishop, turn)
+        # evaluation += get_bishop_battery_bonus(board, bishop, turn)
         evaluation += get_eval(board, turn,
                                get_developed_eval(bishop, turn))
         evaluation += get_undeveloped_bishop_blocked_penalty(board, bishop)
@@ -752,6 +763,8 @@ def get_rook_value(board, turn, rook, free_to_take=None, free_to_trade=None, fre
             evaluation += len(board.attacks(rook)) * ATTACK_VALUE
             evaluation += get_eval(board, turn,
                                    get_attacking_bonus(board, turn, rook, ROOK_SQUARES_TO_ATTACKING_BONUS, ROOK_RANKS_TO_ATTACKING_BONUS))
+        if not chess_util.is_rook_pinned(board, rook, turn) and board.is_soft_pinned(rook):
+            evaluation += ROOK_SOFT_PINNED_PENALTY
         evaluation += get_defended_bonus(board, rook)
         evaluation += get_eval(board, turn,
                                get_rook_on_open_file_bonus(board, rook))
@@ -806,7 +819,7 @@ def get_queen_value(board, turn, queen, free_to_take=None, free_to_trade=None, f
             FREE_TO_TAKE_MODIFIER_PENALTY
     elif queen == free_to_trade:
         evaluation += FREE_TO_TRADE_MODIFIER * free_to_trade_value
-    elif board.is_pinned(turn, queen) and board.piece_type_at(chess_util.get_pinner(board, queen)) in [chess.BISHOP, chess.ROOK]:
+    elif board.is_pinned(turn, queen) and board.piece_type_at(chess_util.get_pinner(board, queen)) in {chess.BISHOP, chess.ROOK}:
         pinner_piece_type = board.piece_type_at(
             chess_util.get_pinner(board, queen))
         evaluation += PIECE_TYPES_TO_VALUES[pinner_piece_type] * \
@@ -815,6 +828,8 @@ def get_queen_value(board, turn, queen, free_to_take=None, free_to_trade=None, f
         evaluation += PIECE_TYPES_TO_VALUES[chess.QUEEN]
         if not board.is_pinned(turn, queen):
             evaluation += len(board.attacks(queen)) * QUEEN_ATTACK_VALUE
+        if not board.is_pinned(turn, queen) and board.is_soft_pinned(queen):
+            evaluation += QUEEN_SOFT_PINNED_PENALTY
         evaluation += get_defended_bonus(board, queen)
     return evaluation
 
@@ -1042,7 +1057,7 @@ def get_defended_bonus_old(board, piece):
 
 
 # Pieces get a bonus for being defended
-def get_defended_bonus(board, piece):
+def get_defended_bonus_old2(board, piece):
     color = board.color_at(piece)
     #defenders = [defender for defender in board.attackers(
     #    color, piece) if not board.is_pinned(color, defender)]
@@ -1053,6 +1068,18 @@ def get_defended_bonus(board, piece):
     elif len(defenders) == 1 and board.piece_type_at(defenders[0]) == chess.PAWN:
         return PAWN_DEFENDING_BONUS
     elif len(defenders) == 1:
+        return DEFENDED_BONUS
+    return 0
+
+
+def get_defended_bonus(board, piece):
+    """Pieces get a bonus for being defended
+    """
+    attackers_and_defenders = board.get_soft_attackers_and_defenders(piece)
+    attackers = attackers_and_defenders[0] + attackers_and_defenders[1]
+    defenders = attackers_and_defenders[2] + attackers_and_defenders[3]
+    defender_attacker_diff = len(defenders) - len(attackers)
+    if defender_attacker_diff >= 1:
         return DEFENDED_BONUS
     return 0
 
