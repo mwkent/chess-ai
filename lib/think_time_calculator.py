@@ -19,7 +19,7 @@ def get_max_think_time(board: Board, white_time: int, white_increment: int,
 	player_increment /= 1000.0
 
 	# What is the most number of moves a game will take, roughly
-	max_moves_in_game = 80
+	max_moves_in_game = 60
 	min_moves_left = 20
 	num_remaining_moves = max(max_moves_in_game - board.fullmove_number, min_moves_left)
 	total_time_to_complete_game = player_time + num_remaining_moves * player_increment
