@@ -106,6 +106,17 @@ class TestSearchExtension(unittest.TestCase):
 		evaluation = search_getting_mated(board, turn, num_checks_left=1)
 		self.assertEqual(evaluation[0], search_extension.MAX_EVAL - 1)
 
+	def test_mate_in_2(self):
+		board = Board("1r3r1k/p1ppBbp1/3n2Q1/8/3p1P2/5R2/P5PP/7K w - - 2 26")
+		turn = chess.BLACK
+		evaluation = search_getting_mated(board, turn, num_checks_left=2)
+		print(evaluation)
+		self.assertEqual(evaluation[0], search_extension.MIN_EVAL + 2)
+
+		evaluation = search(board, turn)
+		print(evaluation)
+		self.assertEqual(evaluation[0], search_extension.MIN_EVAL + 2)
+
 	def test_is_past_max_loss(self):
 		board_turn = chess.WHITE
 		evaluating_turn = chess.BLACK

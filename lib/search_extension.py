@@ -5,8 +5,10 @@ from board import Board
 import position_evaluator
 from move_position_evaluator import MovePositionEvaluator
 import endgame
+from itertools import repeat
 
-# Extends search with a refined list of moves
+"""Extends search with a refined list of moves
+"""
 
 MAX_EVAL = 1_000_000
 WINNING_EVAL = MAX_EVAL / 2
@@ -19,6 +21,11 @@ PIECE_TYPES_TO_ROUGH_VALUES = {chess.PAWN: 100, chess.KNIGHT: 300, chess.BISHOP:
 PIECE_TYPES_TO_VALUES = position_evaluator.PIECE_TYPES_TO_VALUES.copy()
 PIECE_TYPES_TO_VALUES[chess.KING] = 0
 
+# TODO: Delete
+#seen_fens = set()
+#repeated_fen_count = 0
+
+fens_to_evals = {}
 
 def extend_search(board, turn, check_tactics, extend):
     maximizing = board.turn == turn
@@ -257,17 +264,29 @@ def minimax(board: Board, turn: chess.Color, maximizing: bool, return_best: bool
             num_pawn_promotion_remaining: int=0, num_captures_remaining: int=2,
             num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
            -> Tuple[int, List[chess.Move]]:
+    # TODO: Delete
+    #global seen_fens, repeated_fen_count
+    #if board.fen() in seen_fens:
+    #    repeated_fen_count += 1
+    #else:
+    #    seen_fens.add(board.fen())
 
     # Make move and evaluate
     board.push(move)
-    evaluation = search_helper(board, turn, return_best, old_evaluation,
-                        move_position_evaluator,
-                        start_evaluation, max_loss,
-                        num_checks_remaining, num_pawn_promotion_remaining,
-                        num_captures_remaining, num_attacks_and_defends_remaining,
-                        num_moves_remaining)
+    evaluation = None
+    global fens_to_evals
+    if fens_to_evals.get(board.fen()) is not None:
+        evaluation = fens_to_evals.get(board.fen())
+    else:
+        evaluation = search_helper(board, turn, return_best, old_evaluation,
+                            move_position_evaluator,
+                            start_evaluation, max_loss,
+                            num_checks_remaining, num_pawn_promotion_remaining,
+                            num_captures_remaining, num_attacks_and_defends_remaining,
+                            num_moves_remaining)
+        fens_to_evals[board.fen()] = min_or_max_eval
+        move_position_evaluator.undo_move()
     board.pop()
-    move_position_evaluator.undo_move()
     
     if (return_best and (min_or_max_eval is None or not min_or_max_eval[1])) or \
         (maximizing and (min_or_max_eval is None or evaluation[0] > min_or_max_eval[0])) or \
@@ -378,24 +397,34 @@ def search_helper(board: Board, turn: chess.Color,
 def search(board: Board, turn: chess.Color, return_best: bool=False,
            old_evaluation: float=None,
            move_position_evaluator: MovePositionEvaluator=None,
-           start_evaluation: int=None, max_loss: int=100,
+           start_evaluation: int=None, max_loss: int=200,
            num_checks_remaining: int=0,
            num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
            num_attacks_and_defends_remaining: int=0,
            forced_mate_depth: int=2):
     """Returns the evaluation and the list of best moves that were calculated
     """
+    # TODO: Delete
+    #global seen_fens, repeated_fen_count
+    #seen_fens = set()
+    #repeated_fen_count = 0
+
+    global fens_to_evals
+    fens_to_evals = {}
+
     game_over_eval = position_evaluator.get_game_over_eval(board, turn)
     if game_over_eval is not None:
         return game_over_eval, []
     if endgame.is_endgame(board):
         return position_evaluator.evaluate_position(board, turn), []
-    for num_checks in range(1, forced_mate_depth):
+    for num_checks in range(1, forced_mate_depth + 1):
         forced_mate_evaluation = search_getting_mated(board, turn, num_checks_left=num_checks)
         if forced_mate_evaluation[0] != 0:
             return forced_mate_evaluation
-    return search_helper(board, turn, return_best,
+    result = search_helper(board, turn, return_best,
                          old_evaluation, move_position_evaluator,
                          start_evaluation, max_loss,
                          num_checks_remaining, num_pawn_promotion_remaining,
                          num_captures_remaining, num_attacks_and_defends_remaining)
+    #print("fens repeated =", repeated_fen_count)
+    return result
