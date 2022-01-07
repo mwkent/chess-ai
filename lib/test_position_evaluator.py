@@ -283,6 +283,11 @@ class TestPositionEvaluator(unittest.TestCase):
 		bishop = chess.F8
 		self.assertEqual(position_evaluator.get_undeveloped_bishop_blocked_penalty(board, bishop), 0)
 
+	def test_get_bishop_attacking_knight_bonus(self):
+		board = Board("8/1q6/6n1/8/4B3/8/2N5/8 w - - 0 1")
+		bishop = chess.E4
+		self.assertEqual(position_evaluator.get_bishop_attacking_knight_bonus(board, bishop), position_evaluator.BISHOP_ATTACKING_KNIGHT_BONUS)
+
 	def test_kick_knight_penalty(self):
 		board = Board("2k5/1ppp2p1/3b3p/3NN1b1/N4N2/6N1/8/2K5 w - - 0 1")
 		knight = chess.A4
@@ -304,6 +309,11 @@ class TestPositionEvaluator(unittest.TestCase):
 		board = Board("4k3/8/3p4/2p3p1/8/5N2/8/4K3 w - - 0 1")
 		knight = chess.F3
 		self.assertEqual(position_evaluator.get_knight_controlled_penalty(board, knight), position_evaluator.KNIGHT_CONTROLLED_PENALTY * 4)
+
+	def test_get_knight_attacking_bishop_bonus(self):
+		board = Board("8/8/8/2q3b1/4N3/2B5/8/8 w - - 0 1")
+		knight = chess.E4
+		self.assertEqual(position_evaluator.get_knight_attacking_bishop_bonus(board, knight), position_evaluator.KNIGHT_ATTACKING_BISHOP_BONUS)
 
 	def test_bishop_battery_bonus(self):
 		board = Board("2r3k1/b4pp1/p1p4p/1b3N2/QP2P3/2P2P2/P4qPP/R6K w - - 5 25")

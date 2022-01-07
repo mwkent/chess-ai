@@ -89,12 +89,14 @@ KNIGHT_RANK_EVAL = [[0, 0], [5, 0], [10, 0], [
 KICK_KNIGHT_PENALTY = [-30, -10]
 KNIGHT_CONTROLLED_PENALTY = -1
 KNIGHT_SOFT_PINNED_PENALTY = -10
+KNIGHT_ATTACKING_BISHOP_BONUS = 5
 
 
 # Bishop
 PIECE_ON_BISHOP_COLOR_PENALTY = -3
 BISHOP_PAIR_EVAL = 20
 BISHOP_BATTERY_BONUS = 5
+BISHOP_ATTACKING_KNIGHT_BONUS = 5
 # Long diagonal has some potential
 LONG_DIAGONAL_BONUS = [2*ATTACK_VALUE, 0]
 BISHOP_BLOCKED_PENALTY = -10
@@ -583,6 +585,15 @@ def get_knight_controlled_penalty(board, knight):
     return knight_controlled_penalty
 
 
+def get_knight_attacking_bishop_bonus(board, knight):
+    knight_color = board.color_at(knight)
+    result = 0
+    for piece in board.attacks(knight):
+        if board.piece_type_at(piece) == chess.BISHOP and board.color_at(piece) != knight_color:
+            result += KNIGHT_ATTACKING_BISHOP_BONUS
+    return result
+
+
 def get_knight_value(board, turn, knight, free_to_take=None, free_to_trade=None, free_to_trade_value=None):
     evaluation = 0
     if knight == free_to_take:
@@ -596,6 +607,7 @@ def get_knight_value(board, turn, knight, free_to_take=None, free_to_trade=None,
             evaluation += len(board.attacks(knight)) * ATTACK_VALUE
             evaluation += get_eval(board, turn,
                                    get_attacking_bonus(board, turn, knight))
+            evaluation += get_knight_attacking_bishop_bonus(board, knight)
         if not board.is_pinned(turn, knight) and board.is_soft_pinned(knight):
             evaluation += KNIGHT_SOFT_PINNED_PENALTY
         # I don't think this is needed anymore with attacking_bonus
@@ -666,6 +678,15 @@ def get_undeveloped_bishop_blocked_penalty(board, bishop):
     return 0
 
 
+def get_bishop_attacking_knight_bonus(board, bishop):
+    bishop_color = board.color_at(bishop)
+    result = 0
+    for piece in board.attacks(bishop):
+        if board.piece_type_at(piece) == chess.KNIGHT and board.color_at(piece) != bishop_color:
+            result += BISHOP_ATTACKING_KNIGHT_BONUS
+    return result
+
+
 def get_bishop_value(board, turn, bishop, free_to_take=None, free_to_trade=None, free_to_trade_value=None):
     """What makes a bishop stronger or weaker?
     """
@@ -683,6 +704,7 @@ def get_bishop_value(board, turn, bishop, free_to_take=None, free_to_trade=None,
                                    get_attacking_bonus(board, turn, bishop))
             evaluation += get_eval(board, turn,
                                    get_long_diagonal_bonus(bishop))
+            evaluation += get_bishop_attacking_knight_bonus(board, bishop)
         if not chess_util.is_bishop_pinned(board, bishop, turn) and board.is_soft_pinned(bishop):
             evaluation += BISHOP_SOFT_PINNED_PENALTY
         evaluation += get_defended_bonus(board, bishop)
