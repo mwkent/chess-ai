@@ -7,6 +7,7 @@ import move_filter
 import move_calculator
 from uci import position
 import position_evaluator
+import search_extension
 
 class TestMinimaxAlphaBeta(unittest.TestCase):
 
@@ -242,6 +243,31 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		board = Board("8/2p1nk2/1p6/p4p2/8/P1P5/5N2/5N1K w - - 1 59")
 		move = minimax_alpha_beta.pick_move(board, 1, move_filter=move_filter.is_soft_tactic)
 		self.assertEqual(move, chess.Move.null())
+
+	def test_save_knight2(self):
+		board = Board("r2qkbnr/pppbpp1p/6p1/3pP3/1n3P2/N1PP1Q1P/PP2N1P1/R1B1KB1R b KQkq - 0 10")
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
+		self.assertEqual(move, chess.Move.from_uci("b4c6"))
+
+	def test_avoid_bishop_trap(self):
+		board = Board("rn1qkb1r/2pbn1p1/3ppp2/pp6/3PP2B/1B3N2/PPP1NPPP/R2Q1RK1 w kq - 0 11")
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
+		self.assertIn(move, {chess.Move.from_uci("a2a3"), chess.Move.from_uci("a2a4"),
+							chess.Move.from_uci("e2f4")})
+
+	def test_save_bishop(self):
+		board = Board("1n1qkb1r/Q1pbn3/3p1p2/1r4p1/pP1PP2B/5N2/P1P1NPPP/R4RK1 w k - 0 17")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertEqual(move, chess.Move.from_uci("h4g3"))
+
+	def test_avoid_queen_sac(self):
+		"""Avoid losing the queen for nothing
+		"""
+		board = Board("6k1/5ppp/r7/2p1p3/1p6/p2qP1P1/7P/3RQ1K1 b - - 1 82")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		self.assertIn(move, {chess.Move.from_uci("e5e4"), chess.Move.from_uci("c5c4"),
+							chess.Move.from_uci("d3d6"), chess.Move.from_uci("a6d6"),
+							chess.Move.from_uci("d3d1")})
 
 
 

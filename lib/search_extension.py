@@ -339,7 +339,18 @@ def search_helper(board: Board, turn: chess.Color,
     # Todo: Check
     # old_evaluation = min_or_max_eval[0]
     maximizing = board.turn == turn
-    if board.is_check():
+
+    checkmating_move = next((move for move in board.legal_moves if board.gives_checkmate(move)), None)
+    if checkmating_move is not None:
+        min_or_max_eval = minimax(board, turn, maximizing, return_best,
+                                  checkmating_move, old_evaluation,
+                                  move_position_evaluator,
+                                  start_evaluation, max_loss, min_or_max_eval,
+                                  num_checks_remaining, num_pawn_promotion_remaining,
+                                  num_captures_remaining, num_attacks_and_defends_remaining,
+                                  num_moves_remaining-1)
+
+    elif board.is_check():
         # Evaluate all moves when in check, so min_or_max should be reset
         min_or_max_eval = None
         for move in board.legal_moves:
