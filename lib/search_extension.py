@@ -26,8 +26,6 @@ PIECE_TYPES_TO_VALUES[chess.KING] = 0
 #seen_fens = set()
 #repeated_fen_count = 0
 
-fens_to_evals = {}
-
 def extend_search(board, turn, check_tactics, extend):
     maximizing = board.turn == turn
     min_or_max = max if maximizing else min
@@ -259,11 +257,12 @@ def is_past_max_loss(board_turn: chess.Color, evaluating_turn: chess.Color, star
 class SearchExtension:
 
     def __init__(self, board: Board, turn: chess.Color, return_best: bool=False,
-               max_loss: int=200):
+               max_loss: int=200, fens_to_evals={}):
         self.board = board
         self.turn = turn
         self.return_best = return_best
         self.max_loss = max_loss
+        self.fens_to_evals = fens_to_evals
         self.move_position_evaluator = None
         self.start_evaluation = None
 
@@ -284,15 +283,14 @@ class SearchExtension:
         # Make move and evaluate
         self.board.push(move)
         evaluation = None
-        global fens_to_evals
-        if fens_to_evals.get(self.board.fen()) is not None:
-            evaluation = fens_to_evals.get(self.board.fen())
+        if self.fens_to_evals.get(self.board.fen()) is not None:
+            evaluation = self.fens_to_evals.get(self.board.fen())
         else:
             evaluation = self.search_helper(
                                 num_checks_remaining, num_pawn_promotion_remaining,
                                 num_captures_remaining, num_attacks_and_defends_remaining,
                                 num_moves_remaining, old_evaluation)
-            fens_to_evals[self.board.fen()] = min_or_max_eval
+            self.fens_to_evals[self.board.fen()] = evaluation
             self.move_position_evaluator.undo_move()
         self.board.pop()
         
@@ -405,9 +403,6 @@ class SearchExtension:
         #global seen_fens, repeated_fen_count
         #seen_fens = set()
         #repeated_fen_count = 0
-
-        global fens_to_evals
-        fens_to_evals = {}
 
         game_over_eval = position_evaluator.get_game_over_eval(self.board, self.turn)
         if game_over_eval is not None:

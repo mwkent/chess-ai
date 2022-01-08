@@ -20,6 +20,8 @@ node_count = 0
 prune_count = 0
 tt_hit_count = 0
 
+fens_to_evals = {}
+
 # Returns (evaluation, move)
 # This is a wrapper around minimax to cover anything required before the search starts
 # Don't need to pass in alpha and beta like in minimax
@@ -29,6 +31,8 @@ def minimax_helper(board, depth, forced_mate_depth: int=2,
 				evaluate_position=position_evaluator.evaluate_position):
 	start = datetime.datetime.now()
 	turn = board.turn
+	global fens_to_evals
+	fens_to_evals = {}
 	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
 		evaluate_position, use_tt, sort_moves, move_filter=move_filter,
 		move_filter_depth=move_filter_depth, extend_search=extend_search,
@@ -65,8 +69,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 	if depth == 0 or chess_util.is_game_over(board):
 		evaluation = 0
 		if extend_search:
-			evaluation = SearchExtension(board, turn).search(forced_mate_depth=forced_mate_depth,
-															num_captures_remaining=num_captures)
+			evaluation = SearchExtension(board, turn, fens_to_evals=fens_to_evals).search(
+				forced_mate_depth=forced_mate_depth, num_captures_remaining=num_captures)
 		else:
 			evaluation = (evaluate_position(board, turn, check_tactics=True, extend=True), [])
 		#print("depth = ", depth)
