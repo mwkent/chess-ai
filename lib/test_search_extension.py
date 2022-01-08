@@ -2,7 +2,7 @@ import unittest
 import chess
 from board import Board
 from typing import List
-from search_extension import get_potential_tactics_moves, search_helper, search_getting_mated, search, \
+from search_extension import SearchExtension, get_potential_tactics_moves, search_getting_mated, \
 	is_past_max_loss
 import search_extension
 from move_position_evaluator import MovePositionEvaluator
@@ -63,32 +63,33 @@ class TestSearchExtension(unittest.TestCase):
 	def test_search_trap_queen(self):
 		board = Board("r4rk1/ppp2ppp/1b1p2b1/8/3nN1Pq/3B3P/PPPB1P2/R2K1Q1R w - - 8 17")
 		moves = ["d2g5", "g6e4", "g5h4"]
-		print(search_helper(board, chess.WHITE))
+		print(SearchExtension(board, chess.WHITE).search_helper())
 
 	def test_search_free_bishop(self):
 		board = Board("r1b1k1r1/pp1n1p1p/2pqp3/3p4/3PnB2/3B1NPP/PPP2P2/R2QR1K1 b q - 2 14")
 		move = chess.Move.from_uci("d6f4")
-		result = search_helper(board, chess.BLACK)
+		result = SearchExtension(board, chess.BLACK).search_helper()
 		self.assertEqual(result[1][0], move)
 
 	def test_winning_queen(self):
 		board = Board("r4rk1/pp2bppp/4b3/2p5/2q1NR2/P3P3/1BQP2PP/5RK1 w - - 0 21")
-		result = search_helper(board, chess.WHITE)
+		result = SearchExtension(board, chess.WHITE).search_helper()
 		move = result[1][0]
 		self.assertEqual(move, chess.Move.from_uci("e4f6"))
 
 	def test_capture_free_knight(self):
 		board = Board("2qr2k1/1pp2p2/2n3p1/4p3/p2p4/3P2N1/2NBPnB1/1Q4KR w - - 0 67")
 		turn = chess.BLACK
-		result = search_helper(board, turn,
-							num_checks_remaining=1, num_pawn_promotion_remaining=1, num_captures_remaining=2)
+		result = SearchExtension(board, turn).search_helper(num_checks_remaining=1,
+														num_pawn_promotion_remaining=1,
+														num_captures_remaining=2)
 		self.assertEqual([chess.Move.from_uci("g1f2")], result[1])
 
 	# Threat to fork king and undefended knight with queen
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2PnB2/5N2/1PP1PPPP/R2QKB1R b KQkq - 2 15")
 		turn = chess.WHITE
-		result = search_helper(board, turn,
+		result = SearchExtension(board, turn).search_helper(
 							num_checks_remaining=1, num_pawn_promotion_remaining=1, num_captures_remaining=8)
 		self.assertEqual(chess.Move.from_uci("e7b4"), result[1][0])
 		
@@ -113,7 +114,7 @@ class TestSearchExtension(unittest.TestCase):
 		print(evaluation)
 		self.assertEqual(evaluation[0], search_extension.MIN_EVAL + 2)
 
-		evaluation = search(board, turn)
+		evaluation = SearchExtension(board, turn).search()
 		print(evaluation)
 		self.assertEqual(evaluation[0], search_extension.MIN_EVAL + 2)
 
@@ -143,7 +144,7 @@ class TestSearchExtension(unittest.TestCase):
 		board = Board("6k1/5p2/1p1r2pp/3p4/2p1p2q/1PPnn1b1/KBNPB1R1/3Q4 w - - 0 47")
 		turn = chess.BLACK
 		#print(MovePositionEvaluator(board, turn).get_evaluation())
-		evaluation = search(board, turn)
+		evaluation = SearchExtension(board, turn).search()
 		print(evaluation)
 
 if __name__ == '__main__':

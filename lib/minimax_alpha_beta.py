@@ -9,8 +9,7 @@ import position_evaluator
 import datetime
 import time
 from transposition_table2 import tt_init, tt_lookup_helper, tt_store
-import search_extension
-import move_filter
+from search_extension import SearchExtension
 
 # Mate in 2 is worse than mate in 1
 MATE_DEPTH_PENALTY = 1
@@ -66,9 +65,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 	if depth == 0 or chess_util.is_game_over(board):
 		evaluation = 0
 		if extend_search:
-			evaluation = search_extension.search(board, turn,
-												forced_mate_depth=forced_mate_depth,
-												num_captures_remaining=num_captures)
+			evaluation = SearchExtension(board, turn).search(forced_mate_depth=forced_mate_depth,
+															num_captures_remaining=num_captures)
 		else:
 			evaluation = (evaluate_position(board, turn, check_tactics=True, extend=True), [])
 		#print("depth = ", depth)

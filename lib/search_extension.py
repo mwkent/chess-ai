@@ -6,6 +6,7 @@ import position_evaluator
 from move_position_evaluator import MovePositionEvaluator
 import endgame
 from itertools import repeat
+from pickle import NONE
 
 """Extends search with a refined list of moves
 """
@@ -255,187 +256,169 @@ def is_past_max_loss(board_turn: chess.Color, evaluating_turn: chess.Color, star
         (evaluating_turn == board_turn and start_evaluation - current_evaluation <= max_loss * -1)
 
 
-def minimax(board: Board, turn: chess.Color, maximizing: bool, return_best: bool,
-            move: chess.Move, old_evaluation: int,
-            move_position_evaluator: MovePositionEvaluator,
-            start_evaluation: int, max_loss: int,
-            min_or_max_eval: Tuple[int, List[chess.Move]],
-            num_checks_remaining: int=1,
-            num_pawn_promotion_remaining: int=0, num_captures_remaining: int=2,
-            num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
-           -> Tuple[int, List[chess.Move]]:
-    # TODO: Delete
-    #global seen_fens, repeated_fen_count
-    #if board.fen() in seen_fens:
-    #    repeated_fen_count += 1
-    #else:
-    #    seen_fens.add(board.fen())
+class SearchExtension:
 
-    # Make move and evaluate
-    board.push(move)
-    evaluation = None
-    global fens_to_evals
-    if fens_to_evals.get(board.fen()) is not None:
-        evaluation = fens_to_evals.get(board.fen())
-    else:
-        evaluation = search_helper(board, turn, return_best, old_evaluation,
-                            move_position_evaluator,
-                            start_evaluation, max_loss,
-                            num_checks_remaining, num_pawn_promotion_remaining,
-                            num_captures_remaining, num_attacks_and_defends_remaining,
-                            num_moves_remaining)
-        fens_to_evals[board.fen()] = min_or_max_eval
-        move_position_evaluator.undo_move()
-    board.pop()
+    def __init__(self, board: Board, turn: chess.Color, return_best: bool=False,
+               max_loss: int=200):
+        self.board = board
+        self.turn = turn
+        self.return_best = return_best
+        self.max_loss = max_loss
+        self.move_position_evaluator = None
+        self.start_evaluation = None
+
+    def minimax(self, maximizing: bool,
+                move: chess.Move, old_evaluation: int,
+                min_or_max_eval: Tuple[int, List[chess.Move]],
+                num_checks_remaining: int=1,
+                num_pawn_promotion_remaining: int=0, num_captures_remaining: int=2,
+                num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
+               -> Tuple[int, List[chess.Move]]:
+        # TODO: Delete
+        #global seen_fens, repeated_fen_count
+        #if board.fen() in seen_fens:
+        #    repeated_fen_count += 1
+        #else:
+        #    seen_fens.add(board.fen())
     
-    if (return_best and (min_or_max_eval is None or not min_or_max_eval[1])) or \
-        (maximizing and (min_or_max_eval is None or evaluation[0] > min_or_max_eval[0])) or \
-        (not maximizing and (min_or_max_eval is None or evaluation[0] < min_or_max_eval[0])):
-        min_or_max_eval = evaluation[0], [move] + evaluation[1]
+        # Make move and evaluate
+        self.board.push(move)
+        evaluation = None
+        global fens_to_evals
+        if fens_to_evals.get(self.board.fen()) is not None:
+            evaluation = fens_to_evals.get(self.board.fen())
+        else:
+            evaluation = self.search_helper(
+                                num_checks_remaining, num_pawn_promotion_remaining,
+                                num_captures_remaining, num_attacks_and_defends_remaining,
+                                num_moves_remaining, old_evaluation)
+            fens_to_evals[self.board.fen()] = min_or_max_eval
+            self.move_position_evaluator.undo_move()
+        self.board.pop()
         
-    return min_or_max_eval
+        if (self.return_best and (min_or_max_eval is None or not min_or_max_eval[1])) or \
+            (maximizing and (min_or_max_eval is None or evaluation[0] > min_or_max_eval[0])) or \
+            (not maximizing and (min_or_max_eval is None or evaluation[0] < min_or_max_eval[0])):
+            min_or_max_eval = evaluation[0], [move] + evaluation[1]
 
-
-# Todo: Try ordering moves, mvv, lva - this did not help performance
-def search_helper(board: Board, turn: chess.Color,
-                  return_best: bool=False,
-                  old_evaluation: float=None,
-                  move_position_evaluator: MovePositionEvaluator=None,
-                  start_evaluation: int=None, max_loss: int=100,
-                  num_checks_remaining: int=1,
-                  num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
-                  num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
-                  -> Tuple[int, List[chess.Move]]:
-    """Returns the evaluation and the list of best moves that were calculated
-    """
-    min_or_max_eval = None
-    if move_position_evaluator is None:
-        move_position_evaluator = MovePositionEvaluator(board, turn)
-        min_or_max_eval = move_position_evaluator.get_evaluation(), []
-    else:
-        min_or_max_eval = move_position_evaluator.evaluate_after_move(), []
-    # Todo: Check
-    # min_or_max_eval = position_evaluator.evaluate_position_after_capture(board, turn, old_evaluation), []
-    if start_evaluation is None:
-        start_evaluation = min_or_max_eval[0]
-
-    if is_past_max_loss(board.turn, turn, start_evaluation, min_or_max_eval[0], max_loss):
-        num_moves_remaining = 1
-    
-    # Don't end search_helper when either player is in check?
-    # If you don't end when in check, max loss may be messed up because moves could be extended by 2
-    if num_moves_remaining == 0 or \
-        (num_checks_remaining <= 0 and num_pawn_promotion_remaining <= 0 and \
-        num_captures_remaining <= 0 and num_attacks_and_defends_remaining <= 0) \
-        or board.is_checkmate() or board.is_stalemate() or board.is_insufficient_material():
-        # and not board.is_check()
-        #print()
-        #print(board.move_stack)
-        #print(position_evaluator.evaluate_position(board, turn, extend=False))
-        
-        # Full evaluation at leaf node
         return min_or_max_eval
 
-    # Todo: Check
-    # old_evaluation = min_or_max_eval[0]
-    maximizing = board.turn == turn
 
-    checkmating_move = next((move for move in board.legal_moves if board.gives_checkmate(move)), None)
-    if checkmating_move is not None:
-        min_or_max_eval = minimax(board, turn, maximizing, return_best,
-                                  checkmating_move, old_evaluation,
-                                  move_position_evaluator,
-                                  start_evaluation, max_loss, min_or_max_eval,
-                                  num_checks_remaining, num_pawn_promotion_remaining,
-                                  num_captures_remaining, num_attacks_and_defends_remaining,
-                                  num_moves_remaining-1)
-
-    elif board.is_check():
-        # Evaluate all moves when in check, so min_or_max should be reset
+    # Todo: Try ordering moves, mvv, lva - this did not help performance
+    def search_helper(self, num_checks_remaining: int=1,
+                      num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
+                      num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20,
+                      old_evaluation: float=None) \
+                      -> Tuple[int, List[chess.Move]]:
+        """Returns the evaluation and the list of best moves that were calculated
+        """
         min_or_max_eval = None
-        for move in board.legal_moves:
-            min_or_max_eval = minimax(board, turn, maximizing, return_best,
-                                      move, old_evaluation,
-                                      move_position_evaluator,
-                                      start_evaluation, max_loss, min_or_max_eval,
+        if self.move_position_evaluator is None:
+            self.move_position_evaluator = MovePositionEvaluator(self.board, self.turn)
+            min_or_max_eval = self.move_position_evaluator.get_evaluation(), []
+        else:
+            min_or_max_eval = self.move_position_evaluator.evaluate_after_move(), []
+        # Todo: Check
+        # min_or_max_eval = position_evaluator.evaluate_position_after_capture(board, turn, old_evaluation), []
+        if self.start_evaluation is None:
+            self.start_evaluation = min_or_max_eval[0]
+    
+        if is_past_max_loss(self.board.turn, self.turn, self.start_evaluation, min_or_max_eval[0], self.max_loss):
+            num_moves_remaining = 1
+        
+        # Don't end search_helper when either player is in check?
+        # If you don't end when in check, max loss may be messed up because moves could be extended by 2
+        if num_moves_remaining == 0 or \
+            (num_checks_remaining <= 0 and num_pawn_promotion_remaining <= 0 and \
+            num_captures_remaining <= 0 and num_attacks_and_defends_remaining <= 0) \
+            or self.board.is_checkmate() or self.board.is_stalemate() or self.board.is_insufficient_material():
+            # and not board.is_check()
+            #print()
+            #print(board.move_stack)
+            #print(position_evaluator.evaluate_position(board, turn, extend=False))
+            
+            # Full evaluation at leaf node
+            return min_or_max_eval
+    
+        # Todo: Check
+        # old_evaluation = min_or_max_eval[0]
+        maximizing = self.board.turn == self.turn
+    
+        checkmating_move = next((move for move in self.board.legal_moves if self.board.gives_checkmate(move)), None)
+        if checkmating_move is not None:
+            min_or_max_eval = self.minimax(maximizing,
+                                      checkmating_move, old_evaluation, min_or_max_eval,
                                       num_checks_remaining, num_pawn_promotion_remaining,
                                       num_captures_remaining, num_attacks_and_defends_remaining,
                                       num_moves_remaining-1)
-    # Not in check
-    else:
-        moves = list(board.legal_moves)
-        if False:
-            moves = sorted(moves, reverse = True, key = lambda move: get_mvv_lva_value(board, move))
-        for move in moves:
-            # Todo: Check if min_or_max_eval is max or min eval to cut short
-            if num_checks_remaining > 0 and board.gives_check(move):
-                min_or_max_eval = minimax(board, turn, maximizing, return_best,
-                                          move, old_evaluation,
-                                          move_position_evaluator,
-                                          start_evaluation, max_loss, min_or_max_eval,
-                                          num_checks_remaining-1, num_pawn_promotion_remaining,
-                                          num_captures_remaining, num_attacks_and_defends_remaining,
-                                          num_moves_remaining-1)
-            # Decrease num checks as well to reduce searching checks in later layers
-            elif num_captures_remaining > 0 and is_capture(board, move):
-                min_or_max_eval = minimax(board, turn, maximizing, return_best,
-                                          move, old_evaluation,
-                                          move_position_evaluator,
-                                          start_evaluation, max_loss, min_or_max_eval,
-                                          num_checks_remaining-1, num_pawn_promotion_remaining,
-                                          num_captures_remaining-1, num_attacks_and_defends_remaining,
-                                          num_moves_remaining-1)
-            elif num_pawn_promotion_remaining > 0 and is_pawn_promotion_move(move):
-                min_or_max_eval = minimax(board, turn, maximizing, return_best,
-                                          move, old_evaluation,
-                                          move_position_evaluator,
-                                          start_evaluation, max_loss, min_or_max_eval,
-                                          num_checks_remaining, num_pawn_promotion_remaining-1,
-                                          num_captures_remaining, num_attacks_and_defends_remaining,
-                                          num_moves_remaining-1)
-            elif num_attacks_and_defends_remaining > 0 and is_attack_or_defend(board, move):
-                min_or_max_eval = minimax(board, turn, maximizing, return_best,
-                                          move, old_evaluation,
-                                          move_position_evaluator,
-                                          start_evaluation, max_loss, min_or_max_eval,
+
+        elif self.board.is_check():
+            # Evaluate all moves when in check, so min_or_max should be reset
+            min_or_max_eval = None
+            for move in self.board.legal_moves:
+                min_or_max_eval = self.minimax(maximizing,
+                                          move, old_evaluation, min_or_max_eval,
                                           num_checks_remaining, num_pawn_promotion_remaining,
-                                          num_captures_remaining, num_attacks_and_defends_remaining-1,
+                                          num_captures_remaining, num_attacks_and_defends_remaining,
                                           num_moves_remaining-1)
+        # Not in check
+        else:
+            moves = list(self.board.legal_moves)
+            for move in moves:
+                # Todo: Check if min_or_max_eval is max or min eval to cut short
+                if num_checks_remaining > 0 and self.board.gives_check(move):
+                    min_or_max_eval = self.minimax(maximizing,
+                                              move, old_evaluation, min_or_max_eval,
+                                              num_checks_remaining-1, num_pawn_promotion_remaining,
+                                              num_captures_remaining, num_attacks_and_defends_remaining,
+                                              num_moves_remaining-1)
+                # Decrease num checks as well to reduce searching checks in later layers
+                elif num_captures_remaining > 0 and is_capture(self.board, move):
+                    min_or_max_eval = self.minimax(maximizing,
+                                              move, old_evaluation, min_or_max_eval,
+                                              num_checks_remaining-1, num_pawn_promotion_remaining,
+                                              num_captures_remaining-1, num_attacks_and_defends_remaining,
+                                              num_moves_remaining-1)
+                elif num_pawn_promotion_remaining > 0 and is_pawn_promotion_move(move):
+                    min_or_max_eval = self.minimax(maximizing,
+                                              move, old_evaluation, min_or_max_eval,
+                                              num_checks_remaining, num_pawn_promotion_remaining-1,
+                                              num_captures_remaining, num_attacks_and_defends_remaining,
+                                              num_moves_remaining-1)
+                elif num_attacks_and_defends_remaining > 0 and is_attack_or_defend(self.board, move):
+                    min_or_max_eval = self.minimax(maximizing,
+                                              move, old_evaluation, min_or_max_eval,
+                                              num_checks_remaining, num_pawn_promotion_remaining,
+                                              num_captures_remaining, num_attacks_and_defends_remaining-1,
+                                              num_moves_remaining-1)
+    
+        return min_or_max_eval
+    
+    
+    def search(self, num_checks_remaining: int=0,
+               num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
+               num_attacks_and_defends_remaining: int=0,
+               forced_mate_depth: int=2):
+        """Returns the evaluation and the list of best moves that were calculated
+        """
+        # TODO: Delete
+        #global seen_fens, repeated_fen_count
+        #seen_fens = set()
+        #repeated_fen_count = 0
 
-    return min_or_max_eval
+        global fens_to_evals
+        fens_to_evals = {}
 
-
-def search(board: Board, turn: chess.Color, return_best: bool=False,
-           old_evaluation: float=None,
-           move_position_evaluator: MovePositionEvaluator=None,
-           start_evaluation: int=None, max_loss: int=200,
-           num_checks_remaining: int=0,
-           num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
-           num_attacks_and_defends_remaining: int=0,
-           forced_mate_depth: int=2):
-    """Returns the evaluation and the list of best moves that were calculated
-    """
-    # TODO: Delete
-    #global seen_fens, repeated_fen_count
-    #seen_fens = set()
-    #repeated_fen_count = 0
-
-    global fens_to_evals
-    fens_to_evals = {}
-
-    game_over_eval = position_evaluator.get_game_over_eval(board, turn)
-    if game_over_eval is not None:
-        return game_over_eval, []
-    if endgame.is_endgame(board):
-        return position_evaluator.evaluate_position(board, turn), []
-    for num_checks in range(1, forced_mate_depth + 1):
-        forced_mate_evaluation = search_getting_mated(board, turn, num_checks_left=num_checks)
-        if forced_mate_evaluation[0] != 0:
-            return forced_mate_evaluation
-    result = search_helper(board, turn, return_best,
-                         old_evaluation, move_position_evaluator,
-                         start_evaluation, max_loss,
-                         num_checks_remaining, num_pawn_promotion_remaining,
-                         num_captures_remaining, num_attacks_and_defends_remaining)
-    #print("fens repeated =", repeated_fen_count)
-    return result
+        game_over_eval = position_evaluator.get_game_over_eval(self.board, self.turn)
+        if game_over_eval is not None:
+            return game_over_eval, []
+        if endgame.is_endgame(self.board):
+            return position_evaluator.evaluate_position(self.board, self.turn), []
+        for num_checks in range(1, forced_mate_depth + 1):
+            forced_mate_evaluation = search_getting_mated(self.board, self.turn, num_checks_left=num_checks)
+            if forced_mate_evaluation[0] != 0:
+                return forced_mate_evaluation
+        result = self.search_helper(num_checks_remaining, num_pawn_promotion_remaining,
+                             num_captures_remaining, num_attacks_and_defends_remaining)
+        #print("fens repeated =", repeated_fen_count)
+        return result
