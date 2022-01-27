@@ -107,7 +107,7 @@ class TestMoveCalculator(unittest.TestCase):
 
 	def test_mate_in_2(self):
 		board = Board("r1n2n1k/pp4b1/2p3QN/2Pp4/1P1P2P1/P3r2q/1B6/R4RK1 w - - 2 28")
-		move = get_move(board, time=2)
+		move = get_move(board, time=4)
 		self.assertEqual(move, chess.Move.from_uci("f1f8"))
 
 	def test_counterattack(self):
@@ -133,8 +133,8 @@ class TestMoveCalculator(unittest.TestCase):
 
 	#@unittest.skip("Used for temporary testing")
 	def test(self):
-		board = Board("r1b1kb1r/p2p3p/4ppN1/qpp3BQ/P2nP3/2NP4/1PP2PPP/R3K2R b KQkq - 0 11")
-		time = 3
+		board = Board("8/2br2kp/4p1p1/3q4/1p6/1P3NP1/5P1P/4R1K1 w - - 1 32")
+		time = 25
 		#move = move_calculator.calculate(board, time)[1]
 		move = move_calculator.calculate_with_thread(board, time)[1]
 		print(move)

@@ -7,12 +7,9 @@ import chess
 import minimax_alpha_beta
 import position_evaluator
 from board import Board
+from constants import MAX_MATING_EVAL, MIN_MATING_EVAL
 import search_extension
 from move_filter import is_hard_tactic, is_soft_tactic, is_soft_not_hard_tactic, is_non_tactic
-
-# Mate in 10
-MAX_MATING_EVAL = position_evaluator.MAX_EVAL - 10
-MIN_MATING_EVAL = position_evaluator.MIN_EVAL + 10
 
 ponder_move = None
 move_result = None
