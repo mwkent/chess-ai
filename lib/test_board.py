@@ -37,6 +37,13 @@ class TestBoard(unittest.TestCase):
 		# Test cached value
 		self.assertEqual(board.get_phase(chess.BLACK), 1)
 
+	def test_get_moves_to_squares(self):
+		board = Board("r1bqkb1r/2p1npp1/ppn1p2p/3pB2Q/3PP3/2NB1N2/PPP2PPP/3RK2R w Kkq - 0 10")
+		bishop = chess.E5
+		moves_to_squares = chess.SquareSet([chess.C7, chess.D6, chess.F6,
+										chess.G7, chess.F4, chess.G3])
+		self.assertEqual(board.get_moves_to_squares(bishop), moves_to_squares)
+
 	def test_gives_checkmate(self):
 		board = Board("rb2r3/pN2k1pp/1n1p1pn1/4P3/P7/4B1N1/qPPPP1PP/2K1RQ2 b - - 0 12")
 		move = chess.Move.from_uci("a2a1")

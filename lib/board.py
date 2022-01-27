@@ -56,6 +56,16 @@ class Board(chess.Board, object):
             self._phase[color] = 1 - (scaled_piece_value_total * 1.0 / scaled_min_opening_total)
         return self._phase[color]
 
+    def get_moves_to_squares(self, piece: chess.Square) -> chess.SquareSet:
+        """Returns the squares a piece can move to
+        """
+        piece_color = self.color_at(piece)
+        result = self.attacks(piece)
+        for square in self.attacks(piece):
+            if self.color_at(square) is not None and self.color_at(square) == piece_color:
+                result.discard(square)
+        return result
+
     def gives_checkmate(self, move: chess.Move) -> bool:
         """
         Probes if the given move would put the opponent in checkmate. The move
