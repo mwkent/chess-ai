@@ -205,6 +205,66 @@ class TestBoard(unittest.TestCase):
 		self.assertEqual(board.get_attackers_and_defenders(free_knight), \
 			(first_attackers, second_attackers, first_defenders, second_defenders))
 
+	def test_is_stronger_piece_attacked_by(self):
+		board = Board("rnb1kb1r/pp1p1ppp/q3pn2/2P5/4P3/2P2N2/PP1N1PPP/R1BQKB1R b KQkq - 0 6")
+		attacking_piece = chess.F1
+		attacked_piece = chess.A6
+		self.assertTrue(board.is_stronger_piece_attacked_by(attacking_piece, attacked_piece))
+
+		attacking_piece = chess.F1
+		attacked_piece = chess.B5
+		self.assertFalse(board.is_stronger_piece_attacked_by(attacking_piece, attacked_piece))
+
+		attacking_piece = chess.B8
+		attacked_piece = chess.A6
+		self.assertFalse(board.is_stronger_piece_attacked_by(attacking_piece, attacked_piece))
+
+		attacking_piece = chess.F6
+		attacked_piece = chess.E4
+		self.assertFalse(board.is_stronger_piece_attacked_by(attacking_piece, attacked_piece))
+
+	def test_get_stronger_pieces_attacked_by(self):
+		board = Board("rnb1kb1r/pp1p1ppp/q3pn2/2P5/4P3/2P2N2/PP1N1PPP/R1BQKB1R b KQkq - 0 6")
+		piece = chess.F1
+		stronger_pieces = {chess.A6}
+		self.assertEqual(board.get_stronger_pieces_attacked_by(piece), stronger_pieces)
+
+		piece = chess.B8
+		stronger_pieces = set()
+		self.assertEqual(board.get_stronger_pieces_attacked_by(piece), stronger_pieces)
+
+	def test_is_hanging_piece_attacked_by(self):
+		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
+		attacking_piece = chess.E4
+		attacked_piece = chess.E6
+		self.assertTrue(board.is_hanging_piece_attacked_by(attacking_piece, attacked_piece))
+
+		attacking_piece = chess.E4
+		attacked_piece = chess.B4
+		self.assertFalse(board.is_hanging_piece_attacked_by(attacking_piece, attacked_piece))
+
+		attacking_piece = chess.E4
+		attacked_piece = chess.E2
+		self.assertFalse(board.is_hanging_piece_attacked_by(attacking_piece, attacked_piece))
+
+		attacking_piece = chess.E4
+		attacked_piece = chess.D4
+		self.assertFalse(board.is_hanging_piece_attacked_by(attacking_piece, attacked_piece))
+
+	def test_get_hanging_pieces_attacked_by(self):
+		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
+		piece = chess.E4
+		hanging_pieces = {chess.E6}
+		self.assertEqual(hanging_pieces, board.get_hanging_pieces_attacked_by(piece))
+
+	def test_does_piece_defend_attacked_piece(self):
+		board = Board("rnb1kb1r/pp1p1ppp/4pn2/1qP5/1P6/2P2N2/P2NPPPP/R1BQKB1R b KQkq - 0 6")
+		piece = chess.B4
+		self.assertTrue(board.does_piece_defend_attacked_piece(piece))
+
+		piece = chess.C1
+		self.assertFalse(board.does_piece_defend_attacked_piece(piece))
+
 	def test_chess_960_castling(self):
 		board = Board("rk6/pppb2rp/4p3/3pNp2/7R/1PP3P1/PKBP3P/R7 b q - 5 18", True)
 		board.chess960 = True
@@ -214,12 +274,6 @@ class TestBoard(unittest.TestCase):
 		board = Board("rk6/pppb2rp/4p3/3pNp2/7R/1PP3P1/PKBP3P/R7 b q - 5 18", False)
 		board.chess960 = True
 		self.assertTrue(queenside_castle in list(board.legal_moves))
-
-	def test_get_hanging_pieces_attacked_by(self):
-		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
-		piece = chess.E4
-		hanging_pieces = {chess.E6}
-		self.assertEqual(hanging_pieces, board.get_hanging_pieces_attacked_by(piece))
 
 
 if __name__ == '__main__':

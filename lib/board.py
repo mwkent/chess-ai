@@ -278,23 +278,43 @@ class Board(chess.Board, object):
             self._squares_to_attackers_and_defenders[piece] = \
                 first_attackers, second_attackers, first_defenders, second_defenders
         return self._squares_to_attackers_and_defenders[piece]
-    
+
+    def is_stronger_piece_attacked_by(self, attacking_piece: chess.Square,
+                                      attacked_piece: chess.Square) -> bool:
+        """Is `attacked_piece` of a higher value and different color than `attacked_piece`?
+        """
+        piece_color = self.color_at(attacking_piece)
+        piece_value = PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(attacking_piece)]
+        return self.piece_at(attacked_piece) is not None and \
+            self.color_at(attacked_piece) != piece_color and \
+            piece_value < PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(attacked_piece)]
+
     def get_stronger_pieces_attacked_by(self, piece: chess.Square) -> Set[chess.Square]:
         """Returns a set of the pieces that have a higher value than `piece`
         and are being attacked by piece
         """
-        piece_color = self.color_at(piece)
-        piece_value = PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(piece)]
         return {attacked_square for attacked_square in self.attacks(piece)
-                       if self.piece_at(attacked_square) is not None and
-                       self.color_at(attacked_square) != piece_color and
-                       piece_value < PIECE_TYPES_TO_ROUGH_VALUES[self.piece_type_at(attacked_square)]}
+                if self.is_stronger_piece_attacked_by(piece, attacked_square)}
+
+    def is_hanging_piece_attacked_by(self, attacking_piece: chess.Square,
+                                     attacked_piece: chess.Square) -> bool:
+        """Is `attacked_piece` hanging and can it be taken by `attacking_piece`?
+        """
+        return self.piece_at(attacked_piece) is not None and \
+            chess_util.can_hanging_piece_be_captured_by(self, attacking_piece, attacked_piece)
 
     def get_hanging_pieces_attacked_by(self, piece: chess.Square) -> Set[chess.Square]:
         """Returns a set of the pieces that are hanging
         and are being attacked by `piece`
         """
         return {attacked_square for attacked_square in self.attacks(piece)
-                if self.piece_at(attacked_square) is not None and
-                chess_util.can_hanging_piece_be_captured_by(self, piece, attacked_square)}
+                if self.is_hanging_piece_attacked_by(piece, attacked_square)}
+
+    def does_piece_defend_attacked_piece(self, piece: chess.Square) -> bool:
+        """Does `piece` defend another piece that is being attacked?
+        """
+        piece_color = self.color_at(piece)
+        return any(self.piece_at(square) and self.color_at(square) == piece_color and
+                   self.attackers(not piece_color, square)
+                   for square in self.attacks(piece))
 
