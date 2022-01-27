@@ -5,8 +5,7 @@ from board import Board
 import position_evaluator
 from move_position_evaluator import MovePositionEvaluator
 import endgame
-from itertools import repeat
-from pickle import NONE
+import search_extension_util as util
 
 """Extends search with a refined list of moves
 """
@@ -55,46 +54,6 @@ def extend_checks(board, turn, check_tactics, extend):
                 board, turn, check_tactics, extend))
             board.pop()
     return evaluation
-
-
-# Check to see if player is getting mated
-def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
-    if board.is_checkmate():
-        if board.turn == turn:
-            return MIN_EVAL + num_checks_made, []
-        else:
-            return MAX_EVAL - num_checks_made, []
-    if num_checks_left == 0:
-        return 0, []
-    # Search all possible moves when in check
-    if board.is_check():
-        evaluation = None
-        for move in board.legal_moves:
-            board.push(move)
-            search_evaluation = search_getting_mated(
-                board, turn, num_checks_left, num_checks_made)
-            board.pop()
-            # At least one line does not lead to forced mate
-            if search_evaluation[0] == 0:
-                return search_evaluation
-            if evaluation is None:
-                evaluation = search_evaluation
-            # A check was intercepted with another check leading to forced mate
-            elif evaluation[0] != search_evaluation[0]:
-                return 0, []
-        return evaluation[0], [move] + evaluation[1]
-    else:
-        # Search checks
-        for move in board.legal_moves:
-            evaluation = 0, []
-            board.push(move)
-            if board.is_check():
-                evaluation = search_getting_mated(
-                    board, turn, num_checks_left-1, num_checks_made+1)
-            board.pop()
-            if evaluation[0] != 0:
-                return evaluation[0], [move] + evaluation[1]
-    return 0, []
 
 
 def is_pawn_promotion_search_move(board: Board, move: chess.Move) -> bool:
@@ -407,12 +366,14 @@ class SearchExtension:
         game_over_eval = position_evaluator.get_game_over_eval(self.board, self.turn)
         if game_over_eval is not None:
             return game_over_eval, []
+
         if endgame.is_endgame(self.board):
             return position_evaluator.evaluate_position(self.board, self.turn), []
-        for num_checks in range(1, forced_mate_depth + 1):
-            forced_mate_evaluation = search_getting_mated(self.board, self.turn, num_checks_left=num_checks)
-            if forced_mate_evaluation[0] != 0:
-                return forced_mate_evaluation
+
+        forced_mate_eval = util.search_getting_mated(self.board, self.turn, forced_mate_depth)
+        if forced_mate_eval[0] != 0:
+            return forced_mate_eval
+
         result = self.search_helper(num_checks_remaining, num_pawn_promotion_remaining,
                              num_captures_remaining, num_attacks_and_defends_remaining)
         #print("fens repeated =", repeated_fen_count)

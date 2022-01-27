@@ -2,7 +2,7 @@ import unittest
 import chess
 from board import Board
 from typing import List
-from search_extension import SearchExtension, get_potential_tactics_moves, search_getting_mated, \
+from search_extension import SearchExtension, get_potential_tactics_moves, \
 	is_past_max_loss
 import search_extension
 from move_position_evaluator import MovePositionEvaluator
@@ -93,31 +93,6 @@ class TestSearchExtension(unittest.TestCase):
 							num_checks_remaining=1, num_pawn_promotion_remaining=1, num_captures_remaining=8)
 		self.assertEqual(chess.Move.from_uci("e7b4"), result[1][0])
 		
-	def test_mate_in_1(self):
-		board = Board("8/8/8/p1p5/P7/2k5/6q1/1K6 b - - 3 93")
-		turn = chess.BLACK
-		_, moves = search_getting_mated(board, turn, num_checks_left=1)
-		self.assertEqual(moves, [chess.Move.from_uci("g2b2")])
-
-	def test_mate_in_1_after_opponent_move(self):
-		"""Opponent has three moves. All lead to mate in 1.
-		"""
-		board = Board("8/1q6/8/p1p5/P7/2k5/8/1K6 w - - 4 94")
-		turn = chess.BLACK
-		evaluation = search_getting_mated(board, turn, num_checks_left=1)
-		self.assertEqual(evaluation[0], search_extension.MAX_EVAL - 1)
-
-	def test_mate_in_2(self):
-		board = Board("1r3r1k/p1ppBbp1/3n2Q1/8/3p1P2/5R2/P5PP/7K w - - 2 26")
-		turn = chess.BLACK
-		evaluation = search_getting_mated(board, turn, num_checks_left=2)
-		print(evaluation)
-		self.assertEqual(evaluation[0], search_extension.MIN_EVAL + 2)
-
-		evaluation = SearchExtension(board, turn).search()
-		print(evaluation)
-		self.assertEqual(evaluation[0], search_extension.MIN_EVAL + 2)
-
 	def test_is_past_max_loss(self):
 		board_turn = chess.WHITE
 		evaluating_turn = chess.BLACK
