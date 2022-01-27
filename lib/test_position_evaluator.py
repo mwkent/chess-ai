@@ -2,6 +2,7 @@ import unittest
 import chess
 import position_evaluator
 from board import Board
+from constants import MIN_MATING_EVAL
 
 
 class TestPositionEvaluator(unittest.TestCase):
@@ -483,6 +484,31 @@ class TestPositionEvaluator(unittest.TestCase):
 		distance = 2
 		self.assertEqual(position_evaluator.activate_king(board, turn), position_evaluator.KING_DISTANCE_TO_PAWN_BONUS[1] * (7-distance) * num_pawns)
 
+	def test_get_open_lines_to_king_penalty_with_castling(self):
+		board = Board("rnbqkb1r/p2p1p1p/1pp1p1pn/4N3/3P4/6P1/PPP1PPBP/RNBQK2R w KQkq - 1 6")
+		king_color = chess.WHITE
+		result = position_evaluator.get_open_lines_to_king_penalty_with_castling(board, king_color)
+		self.assertEqual(result, 0)
+
+		board = Board("rnb2rk1/pp1p1p1p/1p2p1pn/4N3/3PKB2/2N3P1/PPP1PPBP/R2Q1R2 w - - 7 9")
+		king_color = chess.WHITE
+		result = position_evaluator.get_open_lines_to_king_penalty_with_castling(board, king_color)
+		print(result)
+		#self.assertTrue(result < 0)
+
+	def test_get_open_lines_to_king_penalty(self):
+		board = Board("rnbqkb1r/p2p1p1p/1pp1p1pn/4N3/3P4/6P1/PPP1PPBP/RNBQK2R w KQkq - 1 6")
+		king_color = chess.WHITE
+		result = position_evaluator.get_open_lines_to_king_penalty(board, king_color)
+		print(result)
+		#self.assertTrue(result < 0)
+
+		board = Board("rnb2rk1/pp1p1p1p/1p2p1pn/4N3/3PKB2/2N3P1/PPP1PPBP/R2Q1R2 w - - 7 9")
+		king_color = chess.WHITE
+		result = position_evaluator.get_open_lines_to_king_penalty(board, king_color)
+		print(result)
+		#self.assertTrue(result < 0)
+
 	def test_get_open_file_to_king_penalty(self):
 		board = Board("3r2k1/p1r5/8/8/8/8/8/K4R2 w - - 0 1")
 		color = chess.WHITE
@@ -491,6 +517,81 @@ class TestPositionEvaluator(unittest.TestCase):
 
 		color = chess.BLACK
 		self.assertEqual(position_evaluator.get_open_file_to_king_penalty(board, color), 0)
+
+	def test_get_open_rank_to_king_penalty(self):
+		board = Board("1r2r1k1/pb1pqnbp/1pp1ppp1/8/P2PBQ2/1RN1PNP1/1PPR1P1P/6K1 w - - 1 29")
+		king_color = chess.WHITE
+		file_direction = 1
+		result = position_evaluator.get_open_rank_to_king_penalty(board, king_color, file_direction)
+		self.assertEqual(result, 0)
+
+		file_direction = -1
+		result = position_evaluator.get_open_rank_to_king_penalty(board, king_color, file_direction)
+		self.assertEqual(result, position_evaluator.OPEN_RANK_TO_KING_PENALTY * 2)
+
+
+		board = Board("1k6/8/8/8/8/8/3K4/8 w - - 0 1")
+		king_color = chess.WHITE
+		file_direction = 1
+		result = position_evaluator.get_open_rank_to_king_penalty(board, king_color, file_direction)
+		self.assertEqual(result, 0)
+
+		file_direction = -1
+		result = position_evaluator.get_open_rank_to_king_penalty(board, king_color, file_direction)
+		self.assertEqual(result, 0)
+
+	def test_get_open_diagonals_to_king_penalty(self):
+		board = Board("rnbqkb1r/p2p1p1p/1pp1p1pn/4N3/3P4/6P1/PPP1PPBP/RNBQK2R w KQkq - 1 6")
+		king_color = chess.WHITE
+		result = position_evaluator.get_open_diagonals_to_king_penalty(board, king_color)
+		self.assertTrue(result < 0)
+
+		board = Board("rnb2rk1/pp1p1p1p/1p2p1pn/4N3/3PKB2/2N3P1/PPP1PPBP/R2Q1R2 w - - 7 9")
+		king_color = chess.WHITE
+		result = position_evaluator.get_open_diagonals_to_king_penalty(board, king_color)
+		self.assertTrue(result < 0)
+
+	def test_get_open_diagonal_to_king_penalty(self):
+		board = Board("rnbqkb1r/p2p1p1p/1pp1p1pn/4N3/3P4/6P1/PPP1PPBP/RNBQK2R w KQkq - 1 6")
+		king_color = chess.WHITE
+		direction = (1, -1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		self.assertTrue(result < 0)
+
+		direction = (1, 1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		self.assertEqual(result, 0)
+
+		direction = (-1, 1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		self.assertEqual(result, 0)
+
+		direction = (-1, -1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		self.assertEqual(result, 0)
+
+
+		board = Board("rnb2rk1/pp1p1p1p/1p2p1pn/4N3/3PKB2/2N3P1/PPP1PPBP/R2Q1R2 w - - 7 9")
+		king_color = chess.WHITE
+		direction = (1, -1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		print(result)
+		self.assertTrue(result < 0)
+
+		direction = (1, 1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		print(result)
+		self.assertTrue(result < 0)
+
+		direction = (-1, 1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		print(result)
+		self.assertEqual(result, 0)
+
+		direction = (-1, -1)
+		result = position_evaluator.get_open_diagonal_to_king_penalty(board, king_color, direction)
+		print(result)
+		self.assertTrue(result < 0)
 
 	def test_repetition_brings_eval_closer_to_zero(self):
 		board = Board("rnbqk1nr/p1p5/4ppp1/1p5Q/1bpP4/2N1P3/PP3PPP/R1B1KB1R w KQkq - 0 9")
@@ -501,31 +602,20 @@ class TestPositionEvaluator(unittest.TestCase):
 		evaluation = position_evaluator.evaluate_position(board, turn)
 		self.assertEqual(evaluation, init_evaluation / 2)
 
-	def test_search_getting_mated(self):
-		board = Board("5rk1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 b - - 6 30")
-		turn = chess.BLACK
-		self.assertEqual(position_evaluator.search_getting_mated(board, turn), 0)
-
-		# Mate in 2
-		board = Board("3r2k1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 w - - 7 31")
-		turn = chess.BLACK
-		self.assertEqual(position_evaluator.search_getting_mated(board, turn), position_evaluator.MIN_EVAL + 2)
-
-		# Mate in 1
-		board = Board("3r2kR/p1p1q3/5p2/2p1p2Q/N7/pP2P3/K1P5/3r4 b - - 8 31")
-		turn = chess.BLACK
-		self.assertEqual(position_evaluator.search_getting_mated(board, turn), position_evaluator.MIN_EVAL + 1)
-
-		# Not every line leads to forced mate
-		board = Board("8/pppk4/8/8/8/8/8/1KR4R w - - 0 1")
-		turn = chess.WHITE
-		self.assertEqual(position_evaluator.search_getting_mated(board, turn), 0)
-
 	def test_forced_mate(self):
 		# Mate in 2
 		board = Board("3r2k1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 w - - 7 31")
 		turn = chess.BLACK
 		self.assertEqual(position_evaluator.evaluate_position(board, turn, extend=True), position_evaluator.MIN_EVAL + 2)
+
+	def test_mate_in_3_not_found(self):
+		"""Should only check up to mate in 2
+		"""
+		board = Board("2k5/5pR1/pQq1p2r/1p2B2P/2p2N1b/2P2P2/4K3/8 w - - 3 33")
+		result = position_evaluator.evaluate_position(board, chess.BLACK, check_tactics=True,
+													extend=True, check_forced_mate=True)
+		print("result =", result)
+		self.assertTrue(result > MIN_MATING_EVAL)
 
 	def test(self):
 		turn = chess.BLACK

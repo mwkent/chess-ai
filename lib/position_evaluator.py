@@ -3,7 +3,8 @@ from collections import defaultdict
 import chess_util
 import endgame
 from board import Board
-from typing import List
+from typing import List, Tuple
+import search_extension_util
 
 # Todo: Knight strength with pawns; knights are stronger in closed positions
 # Todo: Avoid exchanges when down material/exchange when up material
@@ -63,7 +64,7 @@ DEVELOPMENT_BONUS = [10, 0]
 
 # Pawn
 # Todo: Need to figure out what to do with this; needs to be more generic
-PAWN_IN_CENTER_EVAL = 10
+PAWN_IN_CENTER_EVAL = 5
 # Bonus for pawn being closer to the center
 CENTRAL_PAWN_EVAL = 3
 RANK_PAWN_EVAL = 2
@@ -159,6 +160,8 @@ OPEN_FILE_TO_KING_PENALTY = -10
 HALF_OPEN_FILE_TO_KING_PENALTY = -5
 OPEN_ADJACENT_FILE_TO_KING_PENALTY = -5
 HALF_OPEN_ADJACENT_FILE_TO_KING_PENALTY = -2
+OPEN_RANK_TO_KING_PENALTY = -10
+OPEN_DIAGONAL_TO_KING_PENALTY = -10
 
 KING_DISTANCE_TO_PAWN_BONUS = [0, 1]
 
@@ -290,9 +293,8 @@ def is_isolated_pawn(pawns, pawn):
 def get_isolated_pawn_penalty(pawns, pawn):
     return ISOLATED_PAWN_PENALTY if is_isolated_pawn(pawns, pawn) else 0
 
+
 # Delete? - This was replaced with a check for each pawn instead of all of them
-
-
 def get_num_passed_pawns(board, turn):
     num_passed_pawns = 0
     own_pawns = board.pieces(chess.PAWN, turn)
@@ -886,11 +888,44 @@ def infiltrate_king(board, color):
     return chess_util.get_adjusted_rank(king, color)
 
 
+def get_open_lines_to_king_penalty_with_castling(board: Board, king_color: chess.Color) -> float:
+    """Checks open files, ranks, and diagonals towards the king
+    and considers the best option between current position and castling
+    """
+    least_penalty = get_open_lines_to_king_penalty(board, king_color)
+    if board.has_kingside_castling_rights(king_color):
+        kingside_castling_square = chess.G1 if king_color else chess.G8
+        least_penalty = max(least_penalty,
+                            get_open_lines_to_king_penalty(board, king_color, kingside_castling_square))
+    if board.has_queenside_castling_rights(king_color):
+        queenside_castling_square = chess.C1 if king_color else chess.C8
+        least_penalty = max(least_penalty,
+                            get_open_lines_to_king_penalty(board, king_color, queenside_castling_square))
+    return least_penalty
+
+
+def get_open_lines_to_king_penalty(board: Board, king_color: chess.Color,
+                                   king: chess.Square=None) -> float:
+    """Checks open files, ranks, and diagonals towards the king
+    """
+    penalty = 0
+    if king is None:
+        king = board.king(king_color)
+        # Don't consider rank penalty when king is castling
+        # since the rook won't be in the proper place
+        penalty += get_open_ranks_to_king_penalty(board, king_color)
+    penalty += get_open_file_to_king_penalty(board, king_color, king)
+    penalty += get_open_diagonals_to_king_penalty(board, king_color, king)
+    return penalty
+
+
 # open and half open files towards the king put the king at risk
-def get_open_file_to_king_penalty(board, color):
+def get_open_file_to_king_penalty(board: Board, color: chess.Color,
+                                  king: chess.Square=None) -> int:
     penalty = 0
     if chess_util.get_num_major_pieces(board, not color) > 1 and not board.has_castling_rights(color):
-        king = board.king(color)
+        if king is None:
+            king = board.king(color)
         if chess_util.is_open_file(board, king):
             penalty += OPEN_FILE_TO_KING_PENALTY
         if chess_util.is_half_open_file(board, king):
@@ -905,7 +940,8 @@ def get_open_file_to_king_penalty(board, color):
 
 
 # open ranks towards the king put the king at risk
-def get_open_rank_to_king_penalty(board, color):
+# TODO: Delete?
+def get_open_rank_to_king_penalty2(board, color):
     # Todo: Need to complete this
     penalty = 0
     if chess_util.get_num_major_pieces(board, not color) > 1:
@@ -916,23 +952,82 @@ def get_open_rank_to_king_penalty(board, color):
     return penalty
 
 
-# Todo
-# Open diagonals towards the king put the king at risk
-def get_open_diagonals_to_king_penalty(board, king_color):
+def get_open_ranks_to_king_penalty(board: Board, king_color: chess.Color) -> float:
+    """Checks both directions of king rank towards king
+    """
     penalty = 0
-    if (len(board.pieces(chess.QUEEN, not king_color)) > 1 or
-        len(board.pieces(chess.BISHOP, not king_color)) > 1) and not board.has_castling_rights(king_color):
+    file_directions = [-1, 1]
+    for file_direction in file_directions:
+        penalty += get_open_rank_to_king_penalty(board, king_color, file_direction)
+    return penalty
+
+
+def get_open_rank_to_king_penalty(board: Board, king_color: chess.Color, file_direction: int) -> float:
+    penalty_modifier = len(board.pieces(chess.QUEEN, not king_color))
+    penalty_modifier += 1 if board.pieces(chess.ROOK, not king_color) else 0
+    penalty = OPEN_RANK_TO_KING_PENALTY * penalty_modifier
+    if penalty != 0:
+        max_distance = 3
+
+        for i in range(1, max_distance + 1):
+            king = board.king(king_color)
+            square = chess_util.add_file(king, i * file_direction)
+
+            if square is None:
+                return max(0, i - 2) * penalty / max_distance
+
+            if board.piece_type_at(square) == chess.PAWN:
+                return (i - 1) * penalty / max_distance
+
+            if i == 1:
+                for rook in board.pieces(chess.ROOK, king_color):
+                    rook_attacks = board.attacks(rook)
+                    if rook == square or (square in rook_attacks and king in rook_attacks):
+                        return 0
+
+    return penalty
+
+
+def get_open_diagonals_to_king_penalty(board: Board, king_color: chess.Color,
+                                       king: chess.Square=None) -> float:
+    """Checks all open diagonals around the king
+    """
+    penalty = 0
+    directions = {(1,1), (1,-1), (-1,1), (-1,-1)}
+    for direction in directions:
+        penalty += get_open_diagonal_to_king_penalty(board, king_color, direction, king=king)
+    return penalty
+
+
+# Todo: Update
+def get_open_diagonal_to_king_penalty(board: Board, king_color: chess.Color, direction: Tuple[int, int],
+                                      king: chess.Square=None) -> float:
+    """Checks specific open diagonal
+    Open diagonals towards the king put the king at risk
+    """
+    penalty_modifier = len(board.pieces(chess.QUEEN, not king_color))
+    if king is None:
         king = board.king(king_color)
-        if chess_util.is_open_file(board, king):
-            penalty += OPEN_FILE_TO_KING_PENALTY
-        if chess_util.is_half_open_file(board, king):
-            penalty += HALF_OPEN_FILE_TO_KING_PENALTY
-        for adjacent_file in chess_util.get_adjacent_files(king):
-            adjacent_square = chess.square(adjacent_file, 0)
-            if chess_util.is_open_file(board, adjacent_square):
-                penalty += OPEN_ADJACENT_FILE_TO_KING_PENALTY
-            if chess_util.is_half_open_file(board, adjacent_square):
-                penalty += HALF_OPEN_ADJACENT_FILE_TO_KING_PENALTY
+    on_same_color = chess_util.on_light_squares if chess_util.is_piece_on_light_square(king) \
+        else chess_util.on_dark_squares
+    penalty_modifier += 1 if on_same_color(board.pieces(chess.BISHOP, not king_color)) else 0
+    penalty = OPEN_DIAGONAL_TO_KING_PENALTY * penalty_modifier
+    if penalty != 0:
+        max_distance = 3
+        rank_delta, file_delta = direction
+
+        for i in range(1, max_distance + 1):
+            square = chess_util.add_rank_and_file(king, i * rank_delta, i * file_delta)
+
+            if square is None or board.piece_type_at(square) == chess.PAWN:
+                return (i - 1) * penalty / max_distance
+
+            if i == 1:
+                for bishop in board.pieces(chess.BISHOP, king_color):
+                    bishop_attacks = board.attacks(bishop)
+                    if bishop == square or (square in bishop_attacks and king in bishop_attacks):
+                        return 0
+
     return penalty
 
 
@@ -949,7 +1044,6 @@ def get_king_value(board, color, king=None, free_to_take=None, free_to_trade=Non
     evaluation += activate_king(board, color)
     #print("activate king =", activate_king(board, color))
     evaluation += get_piece_on_bishop_color_penalty(board, king)
-    evaluation += get_open_file_to_king_penalty(board, color)
     #print("piece on bishop color penalty =", get_piece_on_bishop_color_penalty(board, king))
     return evaluation
 
@@ -963,10 +1057,13 @@ def get_king_safety(board, color):
         get_eval(board, color, ATTACKING_ADJACENT_EVAL)
     evaluation += attacking_adjacent_value
     #print("attacking adjacent =", attacking_adjacent_value)
-    evaluation += get_king_square_safety(board, color)
+    # TODO: Delete?
+    #evaluation += get_king_square_safety(board, color)
     #print("king square safety =", get_king_square_safety(board, color))
-    evaluation += get_pawn_wall_value(board, color)
+    # TODO: Delete?
+    #evaluation += get_pawn_wall_value(board, color)
     #print("pawn wall =", get_pawn_wall_value(board, color))
+    evaluation += get_open_lines_to_king_penalty_with_castling(board, color)
     return evaluation
 
 
@@ -1165,46 +1262,6 @@ def extend_trades(board: chess.Board, turn: chess.Color) -> int:
         pass
 
 
-# Check to see if player is getting mated
-def search_getting_mated(board, turn, num_checks_left=2, num_checks_made=0):
-    if board.is_checkmate():
-        if board.turn == turn:
-            return MIN_EVAL + num_checks_made
-        else:
-            return MAX_EVAL - num_checks_made
-    if num_checks_left == 0:
-        return 0
-    # Search all possible moves when in check
-    if board.is_check():
-        evaluation = None
-        for move in board.legal_moves:
-            board.push(move)
-            search_evaluation = search_getting_mated(
-                board, turn, num_checks_left, num_checks_made)
-            board.pop()
-            # At least one line does not lead to forced mate
-            if search_evaluation == 0:
-                return search_evaluation
-            if evaluation is None:
-                evaluation = search_evaluation
-            # A check was intercepted with another check leading to forced mate
-            elif evaluation != search_evaluation:
-                return 0
-        return evaluation
-    else:
-        # Search checks
-        for move in board.legal_moves:
-            evaluation = 0
-            board.push(move)
-            if board.is_check():
-                evaluation = search_getting_mated(
-                    board, turn, num_checks_left-1, num_checks_made+1)
-            board.pop()
-            if evaluation != 0:
-                return evaluation
-    return 0
-
-
 def get_game_over_eval(board: Board, turn: bool) -> int:
     """If the game is over, return the evaluation.
     Otherwise, return None.
@@ -1243,15 +1300,18 @@ def get_repetition_eval(board: Board, turn: bool, evaluation: int) -> int:
 # A positive number is good for turn while negative is bad
 # If quiet search is being used then check_tactics will not be needed since the search will continue until tactics are removed from the position
 # extend can be used to extend the search one level deeper in potential tactical positions
-def evaluate_position(board, turn, check_tactics=False, extend=False):
+def evaluate_position(board, turn, check_tactics=False, extend=False, check_forced_mate=False):
     game_over_eval = get_game_over_eval(board, turn)
     if game_over_eval is not None:
         return game_over_eval
 
-    if extend:
-        forced_mate_evaluation = search_getting_mated(board, turn)
+    if check_forced_mate:
+        forced_mate_result = search_extension_util.search_getting_mated(board, turn)
+        forced_mate_evaluation = forced_mate_result[0]
         if forced_mate_evaluation != 0:
             return forced_mate_evaluation
+
+    if extend:
         if board.is_check():
             return extend_search(board, turn, check_tactics, extend=False)
         else:
