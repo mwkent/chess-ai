@@ -38,7 +38,7 @@ def is_piece_on_dark_square(piece):
 
 # Returns True if one of the pieces is on a light square
 # pieces must be a SquareSet
-def on_light_squares(pieces):
+def on_light_squares(pieces: chess.SquareSet) -> bool:
 	return int(pieces) & chess.BB_LIGHT_SQUARES
 
 # Returns True if one of the pieces is on a dark square
@@ -124,6 +124,8 @@ def add_file(square, num_files):
 	return None
 
 def add_rank_and_file(square, num_ranks, num_files):
+	"""If resulting square is not on the board, None is returned
+	"""
 	return add_file(add_rank(square, num_ranks), num_files)
 
 
@@ -145,6 +147,14 @@ def between_inclusive(a: chess.Square, b: chess.Square) -> chess.SquareSet:
 	"""Returns the set of squares between a and b, including a and b
 	"""
 	bb = chess.BB_RAYS[a][b] & ((chess.BB_ALL << a) ^ (chess.BB_ALL << (b+1)))
+	return chess.SquareSet(bb)
+
+
+def start_ray(a: chess.Square, b: chess.Square) -> chess.SquareSet:
+	"""Returns the set of squares starting at `a` in the direction of `b`
+	"""
+	# bb = chess.BB_RAYS[a][b] & ((chess.BB_ALL << a) ^ (chess.BB_ALL << (b+1)))
+	bb = chess.BB_RAYS[a][b] & (chess.BB_ALL << a)
 	return chess.SquareSet(bb)
 
 
@@ -376,8 +386,9 @@ def is_free_to_take(board: Board, piece: chess.Square, attacked_square: chess.Sq
 
 	if attacked_square is None:
 		attacked_square = piece
+	# Todo: Should this be soft_attackers or not?
 	first_attackers, second_attackers, first_defenders, second_defenders = \
-		board.get_attackers_and_defenders(attacked_square, board.color_at(piece))
+		board.get_soft_attackers_and_defenders(attacked_square, board.color_at(piece))
 	num_attackers = len(first_attackers) + len(second_attackers)
 	num_defenders = len(first_defenders) + len(second_defenders)
 	if len(first_attackers) >= 2:

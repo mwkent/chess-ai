@@ -110,6 +110,14 @@ class TestChessUtil(unittest.TestCase):
 								chess.E8, chess.F8, chess.G8, chess.H8])
 		self.assertEqual(result, chess_util.between_inclusive(chess.A8, chess.H8))
 
+	def test_start_ray(self):
+		result = chess.SquareSet([chess.C5, chess.D6, chess.E7, chess.F8])
+		self.assertEqual(result, chess_util.start_ray(chess.C5, chess.D6))
+
+		result = chess.SquareSet([chess.A2, chess.A3, chess.A4, chess.A5,
+								chess.A6, chess.A7, chess.A8])
+		self.assertEqual(result, chess_util.start_ray(chess.A2, chess.A7))
+
 	def test_get_num_minor_pieces(self):
 		board = Board()
 		self.assertEqual(chess_util.get_num_minor_pieces(board, chess.WHITE), 4)
