@@ -57,6 +57,12 @@ class TestMoveFilter(unittest.TestCase):
 		moves = ["d2g5", "g6e4", "g5h4"]
 		self.get_potential_tactics_moves_helper(board, moves)
 
+	def test_does_opened_piece_make_threat(self):
+		board = Board("rnb1kb1r/pp1p1ppp/q3pn2/2P5/4P3/2P2N2/PP1N1PPP/R1BQKB1R b KQkq - 0 6")
+		piece_color = chess.WHITE
+		piece_from_square = chess.E2
+		self.assertTrue(move_filter.does_opened_piece_make_threat(board, piece_color, piece_from_square))
+
 	def test_make_or_relieve_threat(self):
 		board = Board("8/p7/8/1R6/r1k2P1P/2p3P1/2K5/8 w - - 1 51")
 		move = chess.Move.from_uci("b5b8")
@@ -110,6 +116,18 @@ class TestMoveFilter(unittest.TestCase):
 		board = Board("rnbqk1nr/ppp1ppb1/3p2pp/6B1/2PP4/2N2N2/PP2PPPP/R2QKB1R w KQkq - 4 8")
 		move = chess.Move.from_uci("f3e5")
 		self.assertFalse(move_filter.is_soft_tactic(board, move))
+
+		board = Board("r2qkbnr/pppb1p1p/4p1p1/3pP3/1n3P2/N1PP1Q1P/PP2N1P1/R1B1KB1R w KQkq - 0 11")
+		move = chess.Move.from_uci("c3b4")
+		self.assertTrue(move_filter.is_soft_tactic(board, move))
+
+		board = Board("rnb1kb1r/pp1p1ppp/q3pn2/2P5/8/2P2N2/PP1NPPPP/R1BQKB1R w KQkq - 1 6")
+		# Opens up attack towards queen
+		move = chess.Move.from_uci("e2e4")
+		self.assertTrue(move_filter.is_soft_tactic(board, move))
+
+		move = chess.Move.from_uci("b2b4")
+		self.assertTrue(move_filter.is_soft_tactic(board, move))
 
 	def test_save_hanging_rook_is_soft_tactic(self):
 		board = Board("8/p7/8/1R6/r1k2P1P/2p3P1/2K5/8 w - - 1 51")

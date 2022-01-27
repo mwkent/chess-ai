@@ -2,6 +2,7 @@ import chess
 import chess_util
 from typing import List
 from board import Board
+from constants import LONG_RANGE_PIECE_TYPES
 import position_evaluator
 
 # Extends search with a refined list of moves
@@ -82,6 +83,20 @@ def is_capture(board: Board, move: chess.Move) -> bool:
     return board.is_capture(move)
 
 
+def does_opened_piece_make_threat(board: Board, piece_color: chess.Color,
+                                  piece_from_square: chess.Square) -> bool:
+    """Does the piece that was opened from the last move now make a threat?
+    e.g., pawn moved opening bishop's attack on a piece
+    """
+    for opened_piece in board.attackers(piece_color, piece_from_square):
+        if board.piece_type_at(opened_piece) in LONG_RANGE_PIECE_TYPES:
+            for square in board.attacks(opened_piece).intersection(
+                chess_util.start_ray(opened_piece, piece_from_square)):
+                if board.is_stronger_piece_attacked_by(opened_piece, square) or \
+                    board.is_hanging_piece_attacked_by(opened_piece, square):
+                    return True
+    return False
+
 def make_or_relieve_threat(board: Board, move: chess.Move) -> bool:
     """Does `move` make a threat or reduce the number of threats?
     """
@@ -95,9 +110,16 @@ def make_or_relieve_threat(board: Board, move: chess.Move) -> bool:
     attacked_pieces = board.get_stronger_pieces_attacked_by(piece)
     attacked_pieces.update(board.get_hanging_pieces_attacked_by(piece))
 
+    piece_color = board.color_at(piece)
     try:
         board.push(move)
+        piece_from_square = piece
         piece = move.to_square if rook_to_square is None else rook_to_square
+        if does_opened_piece_make_threat(board, piece_color, piece_from_square) or \
+            board.does_piece_defend_attacked_piece(piece):
+            # The last move opened up a piece that is making a threat
+            return True
+
         if chess_util.can_piece_be_captured_by_weaker_piece(board, piece) or \
             chess_util.can_hanging_piece_be_captured(board, piece):
             return False
