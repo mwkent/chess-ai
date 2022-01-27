@@ -72,7 +72,8 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 			evaluation = SearchExtension(board, turn, fens_to_evals=fens_to_evals).search(
 				forced_mate_depth=forced_mate_depth, num_captures_remaining=num_captures)
 		else:
-			evaluation = (evaluate_position(board, turn, check_tactics=True, extend=True), [])
+			evaluation = (evaluate_position(board, turn, check_tactics=True, extend=True,
+										check_forced_mate=True), [])
 		#print("depth = ", depth)
 		#print("leaf evaluation = ", evaluation)
 		#print("is game over =", board.is_game_over(claim_draw=True))

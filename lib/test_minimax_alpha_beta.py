@@ -28,6 +28,13 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		move = minimax_alpha_beta.pick_move(board, depth=1)
 		self.assertNotEqual(move, chess.Move.from_uci('c4f7'))
 
+	def test_avoid_mate_in_1(self):
+		"""Opponent can mate by force, but engine should stall it for as long as possible
+		"""
+		board = Board("2k1q3/5pR1/pQ2p2r/1p2B2P/2p2N1b/2P2P2/4K3/8 b - - 2 32")
+		move = minimax_alpha_beta.pick_move(board, depth=1, extend_search=False)
+		self.assertIn(move, {chess.Move.from_uci('h4d8'), chess.Move.from_uci('e8c6')})
+
 	def test_getting_mated(self):
 		"""Even if the engine is getting mated, it should still return a move.
 		"""
@@ -268,6 +275,14 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 		self.assertIn(move, {chess.Move.from_uci("e5e4"), chess.Move.from_uci("c5c4"),
 							chess.Move.from_uci("d3d6"), chess.Move.from_uci("a6d6"),
 							chess.Move.from_uci("d3d1")})
+
+	def test_take_pawn(self):
+		"""Queen should take pawn
+		"""
+		board = Board("rnb1kb1r/pp1p1ppp/4pn2/q1P5/8/2P2N2/PP1NPPPP/R1BQKB1R b KQkq - 0 5")
+		move = minimax_alpha_beta.pick_move(board, 1)
+		move = minimax_alpha_beta.pick_move(board, 2, move_filter=move_filter.is_soft_tactic)
+		self.assertEqual(move, chess.Move.from_uci("a5c5"))
 
 
 
