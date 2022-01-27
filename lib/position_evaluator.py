@@ -176,6 +176,8 @@ PIECE_TYPES_TO_VALUES = {chess.PAWN: 100, chess.KNIGHT: 305,
                          chess.BISHOP: 330, chess.ROOK: 500, chess.QUEEN: 900}
 PIECE_TYPES_TO_ROUGH_VALUES = {chess.PAWN: 100, chess.KNIGHT: 300,
                                chess.BISHOP: 300, chess.ROOK: 500, chess.QUEEN: 900}
+PIECE_TYPES_TO_TRAPPED_PENALTIES = {chess.KNIGHT: -30, chess.BISHOP: -30,
+                                    chess.ROOK: -50, chess.QUEEN: -90}
 NON_PAWN_PIECE_TYPES = [chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]
 PIECE_TYPES = [chess.PAWN] + NON_PAWN_PIECE_TYPES
 PIECE_TYPES_STRONG_TO_WEAK = [
@@ -228,11 +230,20 @@ def get_attacking_bonus(board, color, piece, squares_to_attacking_bonus=SQUARES_
             chess_util.get_adjusted_rank(attacked_square, color)))
     return bonus
 
-# Is piece being pressured? Is there one attacker and one defender that's not a pawn?
-# Pieces are tied down to defending another piece
+
+def get_piece_trapped_penalty(board: Board, piece: chess.Square) -> int:
+    """Return a penalty if the piece has no safe squares to move to
+    """
+    piece_color = board.color_at(piece)
+    if any(not board.is_attacked_by(not piece_color, square) for square in board.get_moves_to_squares(piece)):
+        return 0
+    return PIECE_TYPES_TO_TRAPPED_PENALTIES[board.piece_type_at(piece)]
 
 
 def get_pressure_penalty(board, piece):
+    """Is piece being pressured? Is there one attacker and one defender that's not a pawn?
+    Pieces are tied down to defending another piece
+    """
     piece_color = board.color_at(piece)
     attackers = chess_util.get_attackers(board, piece, not piece_color)
     defenders = chess_util.get_attackers(board, piece, piece_color)
@@ -242,11 +253,11 @@ def get_pressure_penalty(board, piece):
             return PRESSURE_PENALTY
     return 0
 
-# Are you attacking a defended piece with something of lesser value (i.e. threatening a trade in your favor)
-# How to handle attacking piece is also attacked
-
 
 def attacking_stronger_pieces(board, color, free_to_take=None, free_to_trade=None, free_to_trade_value=0):
+    """Are you attacking a defended piece with something of lesser value (i.e. threatening a trade in your favor)
+    How to handle attacking piece is also attacked
+    """
     evaluation = 0
     if board.turn != color:
         modifier = FREE_TO_TAKE_NOT_TURN_MODIFIER
@@ -622,6 +633,7 @@ def get_knight_value(board, turn, knight, free_to_take=None, free_to_trade=None,
         knight_fork_value = get_knight_fork_value(board, knight)
         evaluation += FREE_TO_TRADE_MODIFIER * knight_fork_value
         evaluation += get_pressure_penalty(board, knight)
+        evaluation += get_piece_trapped_penalty(board, knight)
     return evaluation
 
 
@@ -715,6 +727,7 @@ def get_bishop_value(board, turn, bishop, free_to_take=None, free_to_trade=None,
                                get_developed_eval(bishop, turn))
         evaluation += get_undeveloped_bishop_blocked_penalty(board, bishop)
         evaluation += get_pressure_penalty(board, bishop)
+        evaluation += get_piece_trapped_penalty(board, bishop)
     return evaluation
 
 
@@ -796,6 +809,7 @@ def get_rook_value(board, turn, rook, free_to_take=None, free_to_trade=None, fre
         evaluation += get_rook_too_aggressive_penalty(board, rook)
         evaluation += get_pressure_penalty(board, rook)
         evaluation += get_rook_aligned_with_bishop_penalty(board, rook)
+        evaluation += get_piece_trapped_penalty(board, rook)
     return evaluation
 
 
@@ -855,6 +869,7 @@ def get_queen_value(board, turn, queen, free_to_take=None, free_to_trade=None, f
         if not board.is_pinned(turn, queen) and board.is_soft_pinned(queen):
             evaluation += QUEEN_SOFT_PINNED_PENALTY
         evaluation += get_defended_bonus(board, queen)
+        evaluation += get_piece_trapped_penalty(board, queen)
     return evaluation
 
 

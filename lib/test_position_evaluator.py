@@ -119,27 +119,26 @@ class TestPositionEvaluator(unittest.TestCase):
 		pawn = chess.G6
 		self.assertEqual(position_evaluator.get_rook_behind_pawn_bonus(board, pawn), 0)
 
-	def test_king_safety_of_open_king(self):
+	def test_percent_attacked_adjacent_of_open_king(self):
 		board = Board("r1b2rk1/pppp1ppp/2n2q2/8/Q7/2P2NK1/P5PP/RN3BR1 b - - 3 13")
 		turn = chess.WHITE
 		percentage_attacked_adjacent = 3.0 / 8
-		self.assertEqual(position_evaluator.get_king_safety(board, turn), \
-			-percentage_attacked_adjacent * position_evaluator.get_eval(board, turn, position_evaluator.ATTACKING_ADJACENT_EVAL))
+		self.assertEqual(position_evaluator.get_percent_attacked_adjacent(board, turn),
+						percentage_attacked_adjacent)
 
-	def test_king_safety_of_safe_king(self):
+	def test_percent_attacked_adjacent_of_safe_king(self):
 		board = Board("r1b2rk1/pppp1ppp/2n2q2/8/Q7/2P2NK1/P5PP/RN3BR1 b - - 3 13")
 		percentage_attacked_adjacent = 0.0 / 8
-		king_square_safety = position_evaluator.SQUARES_TO_BLACK_KING_SAFETY.get(chess.G8, 0)[0]
 		color = chess.BLACK
-		pawn_wall_value = 3 * position_evaluator.get_eval(board, color, position_evaluator.CLOSE_PAWN_WALL_EVAL)
-		self.assertEqual(position_evaluator.get_king_safety(board, color), king_square_safety - percentage_attacked_adjacent + pawn_wall_value)
+		self.assertEqual(position_evaluator.get_percent_attacked_adjacent(board, color),
+						percentage_attacked_adjacent)
 
-	def test_king_safety_of_king_in_check(self):
+	def test_percent_attacked_adjacent_of_king_in_check(self):
 		board = Board("r1b2rk1/pppp1ppp/2n3q1/8/Q7/2P2NK1/P5PP/RN3BR1 w - - 4 14")
 		turn = chess.WHITE
 		percentage_attacked_adjacent = 1.0 / 8
-		self.assertEqual(position_evaluator.get_king_safety(board, turn), \
-			-percentage_attacked_adjacent * position_evaluator.get_eval(board, turn, position_evaluator.ATTACKING_ADJACENT_EVAL))
+		self.assertEqual(position_evaluator.get_percent_attacked_adjacent(board, turn),
+						percentage_attacked_adjacent)
 
 	def test_center_pawn_eval(self):
 		center_pawn_eval = 0
@@ -344,6 +343,15 @@ class TestPositionEvaluator(unittest.TestCase):
 			third_rank_count * position_evaluator.RANKS_TO_ATTACKING_BONUS.get(4)[0] + \
 			fourth_rank_count * position_evaluator.RANKS_TO_ATTACKING_BONUS.get(6)[0]
 		self.assertEqual(position_evaluator.get_attacking_bonus(board, color, piece), attacking_bonus)
+
+	def test_get_piece_trapped_penalty(self):
+		board = Board("1r1qkb1r/2pbnpp1/ppn1p2p/3pB2Q/3P1P2/2NB1N2/PPP1P1PP/3RK2R w Kk - 0 10")
+		piece = chess.E5
+		self.assertEqual(position_evaluator.get_piece_trapped_penalty(board, piece),
+						position_evaluator.PIECE_TYPES_TO_TRAPPED_PENALTIES[chess.BISHOP])
+
+		piece = chess.D3
+		self.assertEqual(position_evaluator.get_piece_trapped_penalty(board, piece), 0)
 
 	def test_get_pressure_penalty(self):
 		board = Board("r4rk1/2pqpp1p/1pn3p1/p2pbb2/6n1/P2PPNP1/1PP1NPBP/R1BQ1R1K w - - 0 13")
@@ -606,7 +614,8 @@ class TestPositionEvaluator(unittest.TestCase):
 		# Mate in 2
 		board = Board("3r2k1/p1p1q3/5p1R/2p1p2Q/N7/pP2P3/K1P5/3r4 w - - 7 31")
 		turn = chess.BLACK
-		self.assertEqual(position_evaluator.evaluate_position(board, turn, extend=True), position_evaluator.MIN_EVAL + 2)
+		self.assertEqual(position_evaluator.evaluate_position(board, turn, extend=True, check_forced_mate=True),
+						position_evaluator.MIN_EVAL + 2)
 
 	def test_mate_in_3_not_found(self):
 		"""Should only check up to mate in 2
