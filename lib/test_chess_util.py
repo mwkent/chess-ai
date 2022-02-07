@@ -314,6 +314,11 @@ class TestChessUtil(unittest.TestCase):
 		bishop = chess.E4
 		self.assertTrue(chess_util.is_soft_free_to_take(board, bishop))
 
+		# Pinner cannot take piece defended by piece it is pinning
+		board = Board("r3kbnr/pN1b2p1/2p2p2/3p2Np/Pq1P4/8/1PPQPPPP/R3KB1R b KQkq - 0 17")
+		pawn = chess.D4
+		self.assertFalse(chess_util.is_soft_free_to_take(board, pawn))
+
 	def test_is_free_to_take(self):
 		# Pawn can be taken with en passant
 		board = Board("8/pR6/1p2k2p/6pP/6P1/2P5/r4PK1/8 w - g6 0 40")

@@ -212,6 +212,7 @@ def is_rook_pinned(board, rook, color):
 			return True
 	return False
 
+
 def can_piece_be_captured_by_weaker_piece(board, piece):
 	color = not board.color_at(piece)
 	return any(attacker for attacker in board.attackers(color, piece)
@@ -241,13 +242,29 @@ def can_hanging_piece_be_captured_by(board, attacking_piece, attacked_piece):
 		return False
 	return can_piece_capture(board, attacking_piece, attacked_piece)
 
-# Can attacking piece take attacked piece
-# Assumes that attacking_piece is actually attacking attacked_piece
+
 def can_piece_capture(board, attacking_piece, attacked_piece):
+	"""Can attacking piece take attacked piece
+	Assumes that attacking_piece is actually attacking attacked_piece, and
+	attacked_piece is not a king
+	"""
 	color = board.color_at(attacking_piece)
-	if board.is_pinned(color, attacking_piece) and attacked_piece not in board.pin(color, attacking_piece):
+	if board.piece_type_at(attacked_piece) == chess.KING or (board.is_pinned(color, attacking_piece) and
+															attacked_piece not in board.pin(color, attacking_piece)):
 		return False
 	return True
+
+
+def can_piece_capture_no_pin(board: Board, attacking_piece, attacked_piece):
+	"""Can attacking piece take attacked piece?
+	`attacking_piece` should not be pinned in any way.
+	Assumes that attacking_piece is actually attacking attacked_piece, and
+	attacked_piece is not a king
+	"""
+	if board.piece_type_at(attacked_piece) == chess.KING or (board.is_soft_pinned(attacking_piece)):
+		return False
+	return True
+
 
 # Gets attackers of square that are part of a battery of attackers (param)
 def get_battery_attackers(board, square, color, attackers):
@@ -463,12 +480,20 @@ def is_soft_free_to_take_helper(board: Board, piece: chess.Square, attacked_squa
 		board.get_soft_attackers_and_defenders(attacked_square, board.color_at(piece))
 	num_attackers = len(first_attackers) + len(second_attackers)
 	num_defenders = len(first_defenders) + len(second_defenders)
+	piece_color = board.color_at(piece)
 	if len(first_attackers) >= 2:
 		all_defenders = first_defenders + second_defenders
 		lowest_two_attacker_value = PIECE_TYPES_TO_VALUES[board.piece_type_at(first_attackers[0])] + \
 			PIECE_TYPES_TO_VALUES[board.piece_type_at(first_attackers[1])]
 		if all(PIECE_TYPES_TO_VALUES[board.piece_type_at(defender)] > lowest_two_attacker_value for defender in all_defenders):
 			return True
+
+	# attacker is pinning defender, so piece is not safe to take
+	elif num_attackers == 1 and num_defenders == 0 and \
+		any(defender for defender in board.attackers(piece_color, attacked_square)
+			if board.is_attacker_soft_pinning(first_attackers[0], defender)):
+		return False
+
 	if num_attackers > num_defenders:
 		if num_defenders == 0:
 			return True
