@@ -8,6 +8,7 @@ import chess_util
 import position_evaluator
 import datetime
 import time
+from move_filter import is_bad_move
 from transposition_table2 import tt_init, tt_lookup_helper, tt_store
 from search_extension import SearchExtension
 
@@ -33,7 +34,7 @@ def minimax_helper(board, depth, forced_mate_depth: int=2,
 	turn = board.turn
 	global fens_to_evals
 	fens_to_evals = {}
-	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL, \
+	result = minimax(board, depth, turn, position_evaluator.MIN_EVAL, position_evaluator.MAX_EVAL,
 		evaluate_position, use_tt, sort_moves, move_filter=move_filter,
 		move_filter_depth=move_filter_depth, extend_search=extend_search,
 		forced_mate_depth=forced_mate_depth, num_captures=num_captures)
@@ -87,9 +88,14 @@ def minimax(board, depth, turn, alpha, beta, evaluate_position, use_tt=False, so
 			tt_hit_count += 1
 			return tt_hit[1]
 	moves = list(board.legal_moves)
+	if move_filter is None:
+		moves = [move for move in moves if not is_bad_move(board, move)]
+		if not moves:
+			moves = list(board.legal_moves)
 	if move_filter is not None and depth <= move_filter_depth:
 		moves = [move for move in moves if move_filter(board, move)]
-		moves.append(chess.Move.null())
+		if not board.is_check():
+			moves.append(chess.Move.null())
 	if (sort_moves):
 		moves = sorted(moves, reverse = True, key = lambda move: get_move_value(board, turn, move, evaluate_position))
 	maximizing = board.turn == turn

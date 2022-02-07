@@ -5,9 +5,7 @@ import minimax_alpha_beta
 from board import Board
 import move_filter
 import move_calculator
-from uci import position
 import position_evaluator
-import search_extension
 
 class TestMinimaxAlphaBeta(unittest.TestCase):
 
@@ -127,8 +125,7 @@ class TestMinimaxAlphaBeta(unittest.TestCase):
 	# Threat to fork king and undefended knight with queen
 	def test_fork_threat(self):
 		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQkq - 1 15")
-		# Note: Changed from 2 to 1 with quiescence search
-		move = minimax_alpha_beta.pick_move(board, 2)
+		move = minimax_alpha_beta.pick_move(board, 1)
 		self.assertIn(move, [chess.Move.from_uci("b7c5"), chess.Move.from_uci("c2c3"), chess.Move.from_uci("c1d2")])
 
 	def test_free_bishop(self):
