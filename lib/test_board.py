@@ -25,6 +25,12 @@ class TestBoard(unittest.TestCase):
 		self.assertNotEqual(board._squares_to_attackers_and_defenders,
 						board_copy._squares_to_attackers_and_defenders)
 
+	def test_get_position_string(self):
+		fen = "r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/2P2N2/1P2PPPP/R1BQKB1R b KQkq - 0 15"
+		position_string = "r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/2P2N2/1P2PPPP/R1BQKB1R b KQkq -"
+		board = Board(fen)
+		self.assertEqual(board.get_position_string(), position_string)
+
 	def test_get_phase_of_opening(self):
 		board = Board()
 		self.assertEqual(board.get_phase(chess.WHITE), 0)
@@ -230,6 +236,11 @@ class TestBoard(unittest.TestCase):
 		attacked_piece = chess.E4
 		self.assertFalse(board.is_stronger_piece_attacked_by(attacking_piece, attacked_piece))
 
+		board = Board("r3kbnr/p2bq1p1/2pN1p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R b KQkq - 2 15")
+		attacking_piece = chess.D6
+		attacked_piece = chess.E8
+		self.assertFalse(board.is_stronger_piece_attacked_by(attacking_piece, attacked_piece))
+
 	def test_get_stronger_pieces_attacked_by(self):
 		board = Board("rnb1kb1r/pp1p1ppp/q3pn2/2P5/4P3/2P2N2/PP1N1PPP/R1BQKB1R b KQkq - 0 6")
 		piece = chess.F1
@@ -239,6 +250,17 @@ class TestBoard(unittest.TestCase):
 		piece = chess.B8
 		stronger_pieces = set()
 		self.assertEqual(board.get_stronger_pieces_attacked_by(piece), stronger_pieces)
+
+	def test_is_attacked_by_weaker_piece(self):
+		board = Board("rnb1k3/pp1p1ppp/q3pn2/2P5/1b2r3/4BN2/PP1N1PPP/R1Q1KB1R b KQq - 0 6")
+		piece = chess.A6
+		self.assertTrue(board.is_attacked_by_weaker_piece(piece))
+
+		piece = chess.E4
+		self.assertFalse(board.is_attacked_by_weaker_piece(piece))
+
+		piece = chess.C1
+		self.assertFalse(board.is_attacked_by_weaker_piece(piece))
 
 	def test_is_hanging_piece_attacked_by(self):
 		board = Board("2k5/8/4n3/b7/1q2R1P1/7P/4N3/K7 w - - 0 1")
