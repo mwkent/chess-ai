@@ -15,7 +15,6 @@ class TestMoveFilter(unittest.TestCase):
 			move = chess.Move.from_uci(move_str)
 			self.assertIn(move, get_potential_tactics_moves(board))
 			board.push(move)
-			
 
 	def test_get_potential_tactics_moves_forced_mate(self):
 		board = Board("3b2k1/1P5p/2Bp4/3Pp3/5p2/1Q6/P6P/1q4BK b - - 2 41")
@@ -56,6 +55,21 @@ class TestMoveFilter(unittest.TestCase):
 		board = Board("r4rk1/ppp2ppp/1b1p2b1/8/3nN1Pq/3B3P/PPPB1P2/R2K1Q1R w - - 8 17")
 		moves = ["d2g5", "g6e4", "g5h4"]
 		self.get_potential_tactics_moves_helper(board, moves)
+
+	def test_is_check_fork(self):
+		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2PnB2/5N2/1PP1PPPP/R2QKB1R b KQkq - 2 15")
+		move = chess.Move.from_uci("e7b4")
+		self.assertTrue(move_filter.is_check_fork(board, move))
+
+		# Attacking the king does not count as attacking a stronger piece
+		board = Board("4kbnr/pN4p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQk - 1 15")
+		move = chess.Move.from_uci("b7d6")
+		self.assertFalse(move_filter.is_check_fork(board, move))
+
+		# Does not count as a fork if forking piece is hanging
+		board = Board("r3kbnr/pN1N2p1/2p2p2/3p3p/P2P4/8/1qPQPPPP/R3KB1R b KQkq - 0 18")
+		move = chess.Move.from_uci("b2b1")
+		self.assertFalse(move_filter.is_check_fork(board, move))
 
 	def test_does_opened_piece_make_threat(self):
 		board = Board("rnb1kb1r/pp1p1ppp/q3pn2/2P5/4P3/2P2N2/PP1N1PPP/R1BQKB1R b KQkq - 0 6")
@@ -146,6 +160,17 @@ class TestMoveFilter(unittest.TestCase):
 		for move_str in moves:
 			move = chess.Move.from_uci(move_str)
 			self.assertTrue(move_filter.is_hard_tactic(board, move))
+
+	def test_is_bad_move(self):
+		board = Board("r3kbnr/pN1bq1p1/2p2p2/3p3p/P2Pn3/5N2/1PP1PPPP/R1BQKB1R w KQkq - 1 15")
+		move = chess.Move.from_uci("b7c5")
+		self.assertFalse(move_filter.is_bad_move(board, move))
+
+		move = chess.Move.from_uci("b7d6")
+		self.assertTrue(move_filter.is_bad_move(board, move))
+
+		move = chess.Move.from_uci("c1h6")
+		self.assertTrue(move_filter.is_bad_move(board, move))
 
 
 if __name__ == '__main__':

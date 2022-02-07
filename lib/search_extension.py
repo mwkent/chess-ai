@@ -3,6 +3,7 @@ import chess_util
 from typing import List, Tuple
 from board import Board
 import position_evaluator
+import move_filter
 from move_position_evaluator import MovePositionEvaluator
 import endgame
 import search_extension_util as util
@@ -230,8 +231,9 @@ class SearchExtension:
                 min_or_max_eval: Tuple[int, List[chess.Move]],
                 num_checks_remaining: int=1,
                 num_pawn_promotion_remaining: int=0, num_captures_remaining: int=2,
-                num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20) \
-               -> Tuple[int, List[chess.Move]]:
+                num_attacks_and_defends_remaining: int=0, num_check_forks_remaining: int = 2,
+                num_moves_remaining: int=20) \
+            -> Tuple[int, List[chess.Move]]:
         # TODO: Delete
         #global seen_fens, repeated_fen_count
         #if board.fen() in seen_fens:
@@ -242,14 +244,15 @@ class SearchExtension:
         # Make move and evaluate
         self.board.push(move)
         evaluation = None
-        if self.fens_to_evals.get(self.board.fen()) is not None:
-            evaluation = self.fens_to_evals.get(self.board.fen())
+        position_string = self.board.get_position_string()
+        if self.fens_to_evals.get(position_string) is not None:
+            evaluation = self.fens_to_evals.get(position_string)
         else:
             evaluation = self.search_helper(
-                                num_checks_remaining, num_pawn_promotion_remaining,
-                                num_captures_remaining, num_attacks_and_defends_remaining,
+                                num_checks_remaining, num_pawn_promotion_remaining, num_captures_remaining,
+                                num_attacks_and_defends_remaining, num_check_forks_remaining,
                                 num_moves_remaining, old_evaluation)
-            self.fens_to_evals[self.board.fen()] = evaluation
+            self.fens_to_evals[position_string] = evaluation
             self.move_position_evaluator.undo_move()
         self.board.pop()
         
@@ -260,13 +263,12 @@ class SearchExtension:
 
         return min_or_max_eval
 
-
     # Todo: Try ordering moves, mvv, lva - this did not help performance
-    def search_helper(self, num_checks_remaining: int=1,
-                      num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
-                      num_attacks_and_defends_remaining: int=0, num_moves_remaining: int=20,
-                      old_evaluation: float=None) \
-                      -> Tuple[int, List[chess.Move]]:
+    def search_helper(self, num_checks_remaining: int = 1,
+                      num_pawn_promotion_remaining: int = 1, num_captures_remaining: int = 8,
+                      num_attacks_and_defends_remaining: int = 0, num_check_forks_remaining: int = 2,
+                      num_moves_remaining: int = 20, old_evaluation: float = None) \
+            -> Tuple[int, List[chess.Move]]:
         """Returns the evaluation and the list of best moves that were calculated
         """
         min_or_max_eval = None
@@ -307,20 +309,23 @@ class SearchExtension:
                                       checkmating_move, old_evaluation, min_or_max_eval,
                                       num_checks_remaining, num_pawn_promotion_remaining,
                                       num_captures_remaining, num_attacks_and_defends_remaining,
-                                      num_moves_remaining-1)
+                                      num_check_forks_remaining, num_moves_remaining-1)
 
         elif self.board.is_check():
             # Evaluate all moves when in check, so min_or_max should be reset
             min_or_max_eval = None
-            for move in self.board.legal_moves:
+            moves = list(self.board.legal_moves)
+            # moves = sorted(moves, reverse=True, key=lambda move: get_mvv_lva_value(self.board, move))
+            for move in moves:
                 min_or_max_eval = self.minimax(maximizing,
                                           move, old_evaluation, min_or_max_eval,
                                           num_checks_remaining, num_pawn_promotion_remaining,
                                           num_captures_remaining, num_attacks_and_defends_remaining,
-                                          num_moves_remaining-1)
+                                          num_check_forks_remaining-1, num_moves_remaining-1)
         # Not in check
         else:
             moves = list(self.board.legal_moves)
+            # moves = sorted(moves, reverse=True, key=lambda move: get_mvv_lva_value(self.board, move))
             for move in moves:
                 # Todo: Check if min_or_max_eval is max or min eval to cut short
                 if num_checks_remaining > 0 and self.board.gives_check(move):
@@ -328,33 +333,37 @@ class SearchExtension:
                                               move, old_evaluation, min_or_max_eval,
                                               num_checks_remaining-1, num_pawn_promotion_remaining,
                                               num_captures_remaining, num_attacks_and_defends_remaining,
-                                              num_moves_remaining-1)
+                                              num_check_forks_remaining-1, num_moves_remaining-1)
                 # Decrease num checks as well to reduce searching checks in later layers
                 elif num_captures_remaining > 0 and is_capture(self.board, move):
                     min_or_max_eval = self.minimax(maximizing,
                                               move, old_evaluation, min_or_max_eval,
                                               num_checks_remaining-1, num_pawn_promotion_remaining,
                                               num_captures_remaining-1, num_attacks_and_defends_remaining,
-                                              num_moves_remaining-1)
+                                              num_check_forks_remaining-1, num_moves_remaining-1)
                 elif num_pawn_promotion_remaining > 0 and is_pawn_promotion_move(move):
                     min_or_max_eval = self.minimax(maximizing,
                                               move, old_evaluation, min_or_max_eval,
                                               num_checks_remaining, num_pawn_promotion_remaining-1,
                                               num_captures_remaining, num_attacks_and_defends_remaining,
-                                              num_moves_remaining-1)
+                                              num_check_forks_remaining-1, num_moves_remaining-1)
                 elif num_attacks_and_defends_remaining > 0 and is_attack_or_defend(self.board, move):
                     min_or_max_eval = self.minimax(maximizing,
                                               move, old_evaluation, min_or_max_eval,
                                               num_checks_remaining, num_pawn_promotion_remaining,
                                               num_captures_remaining, num_attacks_and_defends_remaining-1,
-                                              num_moves_remaining-1)
-    
+                                              num_check_forks_remaining-1, num_moves_remaining-1)
+                elif num_check_forks_remaining > 0 and move_filter.is_check_fork(self.board, move):
+                    min_or_max_eval = self.minimax(maximizing, move, old_evaluation, min_or_max_eval,
+                                                   num_checks_remaining, num_pawn_promotion_remaining,
+                                                   num_captures_remaining, num_attacks_and_defends_remaining,
+                                                   num_check_forks_remaining-1, num_moves_remaining-1)
+
         return min_or_max_eval
-    
-    
+
     def search(self, num_checks_remaining: int=0,
                num_pawn_promotion_remaining: int=1, num_captures_remaining: int=8,
-               num_attacks_and_defends_remaining: int=0,
+               num_attacks_and_defends_remaining: int=0, num_check_forks_remaining: int = 2,
                forced_mate_depth: int=2):
         """Returns the evaluation and the list of best moves that were calculated
         """
@@ -374,7 +383,7 @@ class SearchExtension:
         if forced_mate_eval[0] != 0:
             return forced_mate_eval
 
-        result = self.search_helper(num_checks_remaining, num_pawn_promotion_remaining,
-                             num_captures_remaining, num_attacks_and_defends_remaining)
+        result = self.search_helper(num_checks_remaining, num_pawn_promotion_remaining, num_captures_remaining,
+                                    num_attacks_and_defends_remaining, num_check_forks_remaining)
         #print("fens repeated =", repeated_fen_count)
         return result

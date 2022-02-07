@@ -2,21 +2,8 @@ import chess
 import chess_util
 from typing import List
 from board import Board
-from constants import LONG_RANGE_PIECE_TYPES
+from constants import LONG_RANGE_PIECE_TYPES, PIECE_TYPES_TO_ROUGH_VALUES, MAX_EVAL, WINNING_EVAL, MIN_EVAL, DRAW_EVAL
 import position_evaluator
-
-# Extends search with a refined list of moves
-
-MAX_EVAL = 1_000_000
-WINNING_EVAL = MAX_EVAL / 2
-MIN_EVAL = -MAX_EVAL
-DRAW_EVAL = 0
-
-# Todo: Delete and use chess_util copy
-PIECE_TYPES_TO_ROUGH_VALUES = {chess.PAWN: 100, chess.KNIGHT: 300, chess.BISHOP: 300,
-                               chess.ROOK: 500, chess.QUEEN: 900, chess.KING: 10_000}
-PIECE_TYPES_TO_VALUES = position_evaluator.PIECE_TYPES_TO_VALUES.copy()
-PIECE_TYPES_TO_VALUES[chess.KING] = 0
 
 
 def is_check(board: Board, move: chess.Move) -> bool:
@@ -68,6 +55,12 @@ def is_hanging_piece_capture(board: Board, move: chess.Move) -> bool:
     return chess_util.is_free_to_take(board, move.to_square)
 
 
+def is_check_capture(board: Board, move: chess.Move) -> bool:
+    """Is `move` a check and a capture?
+    """
+    return board.is_capture(move) and board.gives_check(move)
+
+
 def is_good_capture(board: Board, move: chess.Move) -> bool:
     """Is `move` likely a good capture.
     Is it a fair trade, taking a hanging piece, or taking a piece of higher value?
@@ -83,6 +76,22 @@ def is_capture(board: Board, move: chess.Move) -> bool:
     return board.is_capture(move)
 
 
+def is_check_fork(board: Board, move: chess.Move) -> bool:
+    """Is `move` a check and attacking a hanging piece or piece of higher value
+    """
+    _, rook_to_square = board.get_castling_rook(move)
+    try:
+        board.push(move)
+        if board.is_check():
+            piece = move.to_square if rook_to_square is None else rook_to_square
+            if not (chess_util.is_soft_free_to_take(board, piece) or board.is_attacked_by_weaker_piece(piece)) and \
+                    (board.get_stronger_pieces_attacked_by(piece) or board.get_hanging_pieces_attacked_by(piece)):
+                return True
+        return False
+    finally:
+        board.pop()
+
+
 def does_opened_piece_make_threat(board: Board, piece_color: chess.Color,
                                   piece_from_square: chess.Square) -> bool:
     """Does the piece that was opened from the last move now make a threat?
@@ -91,11 +100,12 @@ def does_opened_piece_make_threat(board: Board, piece_color: chess.Color,
     for opened_piece in board.attackers(piece_color, piece_from_square):
         if board.piece_type_at(opened_piece) in LONG_RANGE_PIECE_TYPES:
             for square in board.attacks(opened_piece).intersection(
-                chess_util.start_ray(opened_piece, piece_from_square)):
+                    chess_util.start_ray(opened_piece, piece_from_square)):
                 if board.is_stronger_piece_attacked_by(opened_piece, square) or \
-                    board.is_hanging_piece_attacked_by(opened_piece, square):
+                        board.is_hanging_piece_attacked_by(opened_piece, square):
                     return True
     return False
+
 
 def make_or_relieve_threat(board: Board, move: chess.Move) -> bool:
     """Does `move` make a threat or reduce the number of threats?
@@ -132,7 +142,7 @@ def make_or_relieve_threat(board: Board, move: chess.Move) -> bool:
         board.pop()
 
 
-def  is_attack_or_defend_higher_valued_pieces(board: Board, move: chess.Move) -> bool:
+def is_attack_or_defend_higher_valued_pieces(board: Board, move: chess.Move) -> bool:
     """Does `move` change the set of stronger attacked pieces for the piece being moved
     or does `move` save the piece being moved from being attacked by a weaker piece
     """
@@ -262,6 +272,25 @@ def is_soft_not_hard_tactic(board: Board, move: chess.Move):
 
 def is_non_tactic(board: Board, move: chess.Move):
     return not is_soft_tactic(board, move)
+
+
+def is_bad_move(board: Board, move: chess.Move):
+    """Is `move` with high certainty a bad move?
+    Does it hang a minor or major piece?
+    """
+    piece = move.from_square
+    piece_color = board.color_at(piece)
+    if not board.is_check() and board.piece_type_at(piece) in (chess_util.MINOR_PIECES + chess_util.MAJOR_PIECES) and \
+            not is_capture(board, move) and not any(attacker for attacker in board.attackers(not piece_color, piece)):
+        try:
+            board.push(move)
+            piece = move.to_square
+            if not board.has_defender(piece) and any(attacker for attacker in board.attackers(not piece_color, piece)
+                                                     if chess_util.can_piece_capture_no_pin(board, attacker, piece)):
+                return True
+        finally:
+            board.pop()
+    return False
 
 
 def get_soft_tactic_moves(board: Board):
